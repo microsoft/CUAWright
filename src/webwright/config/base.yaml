@@ -15,7 +15,7 @@
 #     -c base.yaml -c model_claude.yaml
 #
 # Required env (provided by ~/cred.sh):
-#   - OPENAI_API_KEY    (always — used by self_reflection and image_qa tools)
+#   - OPENAI_API_KEY    (only when the configured agent or tool model_class is openai)
 #   - ANTHROPIC_API_KEY (only when stacking model_claude.yaml)
 #   - BROWSERBASE_API_KEY + BROWSERBASE_PROJECT_ID (only when browser_mode=browserbase)
 

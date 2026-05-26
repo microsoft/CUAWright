@@ -182,6 +182,20 @@ class OpenRouterModel(BaseModel):
             payload["provider"] = {"require_parameters": True}
         return payload
 
+    def _build_text_payload(self, messages: list[dict[str, Any]]) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "model": self.config.model_name,
+            "messages": _serialize_chat_messages(messages),
+            "stream": False,
+        }
+        if _is_openai_endpoint(self.config.openrouter_endpoint) and self.config.model_name.startswith("gpt-5"):
+            payload["max_completion_tokens"] = self.config.max_output_tokens
+        else:
+            payload["max_tokens"] = self.config.max_output_tokens
+        if self.config.provider_require_parameters and _is_openrouter_endpoint(self.config.openrouter_endpoint):
+            payload["provider"] = {"require_parameters": True}
+        return payload
+
     def _request_metrics_input(self, payload: dict[str, Any]) -> list[dict[str, Any]]:
         return _metrics_input_from_chat_messages(payload.get("messages") or [])
 

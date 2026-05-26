@@ -140,6 +140,13 @@ class OpenAIModel(BaseModel):
             },
         }
 
+    def _build_text_payload(self, messages: list[dict[str, Any]]) -> dict[str, Any]:
+        return {
+            "model": self.config.model_name,
+            "input": _serialize_response_input(messages),
+            "max_output_tokens": self.config.max_output_tokens,
+        }
+
     def _request_metrics_input(self, payload: dict[str, Any]) -> list[dict[str, Any]]:
         return payload.get("input") or []
 

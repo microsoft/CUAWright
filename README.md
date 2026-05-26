@@ -178,7 +178,10 @@ playwright install chromium
 
 ### Run
 
-Export credentials for the chosen backend (e.g. `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`), then:
+Export credentials for the configured backend (for example, `OPENAI_API_KEY`
+with `model_openai.yaml` or `ANTHROPIC_API_KEY` with `model_claude.yaml`). The
+`image_qa` and `self_reflection` tools use the same configured model by default,
+so an Anthropic run does not require an OpenAI key. Then:
 
 ```bash
 python -m webwright.run.cli \
@@ -203,7 +206,7 @@ python -m webwright.run.cli \
 
 ## 🔌 Use as a Plugin
 
-Webwright ships plugin manifests for both [Claude Code](https://docs.claude.com/en/docs/claude-code/plugins) ([`.claude-plugin/plugin.json`](.claude-plugin/plugin.json)) and [OpenAI Codex](https://developers.openai.com/codex/plugins) ([`.codex-plugin/plugin.json`](.codex-plugin/plugin.json)), with the shared skill at [`skills/webwright/`](skills/webwright/) and slash commands at [`skills/webwright/commands/`](skills/webwright/commands/). The host agent drives the Webwright loop natively — no extra LLM API key or cost beyond your host subscription. Hosts that read PNG screenshots natively skip the OpenAI-backed `image_qa` / `self_reflection` tools.
+Webwright ships plugin manifests for both [Claude Code](https://docs.claude.com/en/docs/claude-code/plugins) ([`.claude-plugin/plugin.json`](.claude-plugin/plugin.json)) and [OpenAI Codex](https://developers.openai.com/codex/plugins) ([`.codex-plugin/plugin.json`](.codex-plugin/plugin.json)), with the shared skill at [`skills/webwright/`](skills/webwright/) and slash commands at [`skills/webwright/commands/`](skills/webwright/commands/). The host agent drives the Webwright loop natively — no extra LLM API key or cost beyond your host subscription. Hosts that read PNG screenshots natively skip the `image_qa` / `self_reflection` tools.
 
 Common runtime deps (install once after either path):
 

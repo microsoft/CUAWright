@@ -268,6 +268,9 @@ class BaseModel:
     def _build_payload(self, messages: list[dict[str, Any]]) -> dict[str, Any]:
         raise NotImplementedError
 
+    def _build_text_payload(self, messages: list[dict[str, Any]]) -> dict[str, Any]:
+        return self._build_payload(messages)
+
     def _request_metrics_input(self, payload: dict[str, Any]) -> list[dict[str, Any]]:
         raise NotImplementedError
 
@@ -524,6 +527,47 @@ class BaseModel:
                 "usage": self._usage_snapshot(),
             },
         )
+
+    async def _complete_text_async(
+        self,
+        messages: list[dict[str, Any]],
+        *,
+        max_output_tokens: int | None = None,
+    ) -> str:
+        original_max_output_tokens = self.config.max_output_tokens
+        if max_output_tokens is not None:
+            self.config.max_output_tokens = max_output_tokens
+        try:
+            payload = self._build_text_payload(messages)
+            request_metrics = _request_metrics_from_serialized_input(self._request_metrics_input(payload))
+            self._last_request_metrics = dict(request_metrics)
+            for key, value in request_metrics.items():
+                self._cumulative_request_metrics[key] += value
+
+            response_payload = await self._post_with_retries(payload)
+
+            usage_metrics = self._usage_metrics_from_payload(response_payload)
+            self._last_usage_metrics = dict(usage_metrics)
+            for key, value in usage_metrics.items():
+                self._cumulative_usage_metrics[key] += value
+
+            raw_text = self._extract_text(response_payload)
+            append_runtime_log(
+                self._raw_response_log_path(),
+                source="model",
+                event="raw_text",
+                raw_text=raw_text,
+            )
+            return raw_text
+        finally:
+            self.config.max_output_tokens = original_max_output_tokens
+
+    def __call__(
+        self,
+        messages: list[dict[str, Any]],
+        **kwargs: Any,
+    ) -> str:
+        return run_async(self._complete_text_async(messages, **kwargs))
 
     def query(self, messages: list[dict[str, Any]], **kwargs) -> dict[str, Any]:
         return run_async(self._query_async(messages))
