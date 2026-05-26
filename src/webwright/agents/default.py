@@ -6,9 +6,11 @@ from pathlib import Path
 from typing import Any
 
 from jinja2 import StrictUndefined, Template
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from webwright import Environment, Model, __version__
+from webwright.cache import ScriptCache
+from webwright.config import CacheConfig
 from webwright.exceptions import FormatError, InterruptAgentFlow, LimitsExceeded
 from webwright.utils.serialize import recursive_merge
 
@@ -44,6 +46,9 @@ class AgentConfig(BaseModel):
     # (default). Opt in per config (e.g. local_browser.yaml sets this to 1).
     keep_last_n_observations: int = -1
     output_path: Path | None = None
+    cache: CacheConfig = Field(default_factory=CacheConfig)
+    cache_fingerprint: str | None = None
+    cache_metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 def _sanitize_message_for_disk(message: dict[str, Any]) -> dict[str, Any]:
@@ -267,6 +272,56 @@ class DefaultAgent:
             )
         return None
 
+    def _latest_final_run_script(self) -> Path | None:
+        workspace_dir = self.get_template_vars().get("workspace_dir")
+        if not workspace_dir:
+            return None
+        final_runs_dir = Path(workspace_dir) / "final_runs"
+        if not final_runs_dir.is_dir():
+            return None
+
+        run_dirs: list[tuple[int, Path]] = []
+        for entry in final_runs_dir.iterdir():
+            if not entry.is_dir() or not entry.name.startswith("run_"):
+                continue
+            suffix = entry.name[len("run_"):]
+            try:
+                run_id = int(suffix)
+            except ValueError:
+                continue
+            run_dirs.append((run_id, entry))
+
+        for _, run_dir in sorted(run_dirs, key=lambda item: item[0], reverse=True):
+            final_script_path = run_dir / "final_script.py"
+            if final_script_path.is_file():
+                return final_script_path
+        return None
+
+    def _cache_final_script_path(self) -> Path | None:
+        latest_run_script = self._latest_final_run_script()
+        if latest_run_script is not None:
+            return latest_run_script
+
+        final_script_path = self.get_template_vars().get("final_script_path")
+        if not final_script_path:
+            return None
+        path = Path(final_script_path)
+        return path if path.is_file() else None
+
+    def _write_cache_entry(self) -> None:
+        if not self.config.cache.enabled or not self.config.cache_fingerprint or self.config.output_path is None:
+            return
+        final_script_path = self._cache_final_script_path()
+        if final_script_path is None:
+            return
+        cache = ScriptCache(self.config.cache)
+        cache.put(
+            self.config.cache_fingerprint,
+            final_script_path,
+            self.config.output_path,
+            metadata=self.config.cache_metadata,
+        )
+
     def add_messages(self, *messages: dict[str, Any]) -> list[dict[str, Any]]:
         self.messages.extend(messages)
         self._prune_old_observation_aria_snapshots()
@@ -378,7 +433,10 @@ class DefaultAgent:
             ):
                 self._compact_history()
                 self.save(self.config.output_path)
-        return self.messages[-1].get("extra", {})
+        result = self.messages[-1].get("extra", {})
+        if result.get("exit_status") == "Submitted":
+            self._write_cache_entry()
+        return result
 
     def step(self) -> list[dict[str, Any]]:
         return self.execute_actions(self.query())

@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+import shlex
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -8,6 +11,7 @@ import typer
 from rich.console import Console
 
 from webwright.agents import get_agent
+from webwright.cache import CachedScript, ScriptCache, make_fingerprint
 from webwright.config import get_config_from_spec, snapshot_config_specs
 from webwright.environments import get_environment
 from webwright.models import get_model
@@ -17,7 +21,7 @@ from webwright.run.doctor import run_doctor
 
 DEFAULT_CONFIGS = ["base.yaml", "model_openai.yaml"]
 
-app = typer.Typer(no_args_is_help=True)
+app = typer.Typer(no_args_is_help=True, context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
 console = Console(highlight=False)
 
 
@@ -26,6 +30,137 @@ def _timestamped_output_dir(base_dir: str | Path | None, task_id: str | None) ->
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     suffix = task_id or "adhoc"
     return base / f"{suffix}_{stamp}"
+
+
+def _extra_config_specs(args: list[str]) -> list[str]:
+    specs: list[str] = []
+    index = 0
+    while index < len(args):
+        raw_arg = args[index]
+        if not raw_arg.startswith("--") or "." not in raw_arg:
+            raise ValueError(f"Unsupported CLI override: {raw_arg!r}")
+
+        spec = raw_arg[2:]
+        if "=" not in spec:
+            if index + 1 < len(args) and not args[index + 1].startswith("--"):
+                spec = f"{spec}={args[index + 1]}"
+                index += 1
+            else:
+                spec = f"{spec}=true"
+        specs.append(spec)
+        index += 1
+    return specs
+
+
+def _cache_metadata(config: dict[str, Any], fingerprint: str) -> dict[str, Any]:
+    return {
+        "fingerprint": fingerprint,
+        "task": config.get("run", {}).get("task", ""),
+        "start_url": config.get("run", {}).get("start_url", ""),
+        "model": {
+            "model_class": config.get("model", {}).get("model_class", ""),
+            "model_name": config.get("model", {}).get("model_name", ""),
+        },
+        "environment": {
+            "environment_class": config.get("environment", {}).get("environment_class", ""),
+        },
+    }
+
+
+def _result_from_cached_trajectory(cached: CachedScript, trajectory: dict[str, Any]) -> dict[str, Any]:
+    info = trajectory.get("info", {})
+    return {
+        "exit_status": info.get("exit_status", "Submitted"),
+        "submission": info.get("submission", ""),
+        "final_response": info.get("submission", ""),
+        "cached": True,
+        "cache_fingerprint": cached.fingerprint,
+    }
+
+
+def _write_cached_trajectory(
+    *,
+    cached: CachedScript,
+    config: dict[str, Any],
+    replay_output: dict[str, Any],
+) -> dict[str, Any]:
+    try:
+        trajectory = json.loads(cached.trajectory_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        trajectory = {
+            "info": {
+                "exit_status": "Submitted",
+                "submission": "Cached script completed.",
+                "api_calls": 0,
+                "format_errors": 0,
+            },
+            "messages": [],
+            "trajectory_format": "mini-swe-webagent-0.1",
+        }
+
+    trajectory["cached"] = True
+    trajectory["cache"] = {
+        "fingerprint": cached.fingerprint,
+        "source": str(cached.directory),
+        "script_path": str(cached.script_path),
+        "replay_returncode": replay_output.get("returncode"),
+    }
+    trajectory["replay_observation"] = replay_output.get("observation", {})
+    trajectory.setdefault("info", {})["cached"] = True
+    trajectory["info"]["api_calls"] = 0
+
+    output_path = Path(config.get("agent", {}).get("output_path", "trajectory.json")).expanduser()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(trajectory, indent=2), encoding="utf-8")
+    return _result_from_cached_trajectory(cached, trajectory)
+
+
+def _try_replay_cache(
+    *,
+    config: dict[str, Any],
+    fingerprint: str,
+    task: str,
+    task_id: str | None,
+    start_url: str | None,
+) -> dict[str, Any] | None:
+    cache = ScriptCache(config.get("cache", {}))
+    if not cache.enabled:
+        return None
+
+    cached = cache.get(fingerprint)
+    if cached is None:
+        console.print("Cache miss: running agent")
+        return None
+
+    if not cache.validate_url(start_url):
+        cache.invalidate(fingerprint)
+        console.print("Cache miss: running agent")
+        return None
+
+    console.print("Cache hit: skipping model loop")
+    env = get_environment(config.get("environment", {}))
+    try:
+        env.prepare(
+            task=task,
+            task_id=task_id,
+            start_url=start_url,
+        )
+        output = env.execute(
+            {"bash_command": f"{shlex.quote(sys.executable)} {shlex.quote(str(cached.script_path))}"}
+        )
+    finally:
+        env.close()
+
+    if output.get("returncode") != 0 or output.get("exception_info"):
+        cache.invalidate(fingerprint)
+        console.print("Cache miss: running agent")
+        return None
+
+    return _write_cached_trajectory(
+        cached=cached,
+        config=config,
+        replay_output=output,
+    )
 
 
 def run_one(
@@ -83,6 +218,30 @@ def run_one(
             },
         },
     )
+    fingerprint = make_fingerprint(config)
+    cache_metadata = _cache_metadata(config, fingerprint)
+    config = recursive_merge(
+        config,
+        {
+            "agent": {
+                "cache": config.get("cache", {}),
+                "cache_fingerprint": fingerprint,
+                "cache_metadata": cache_metadata,
+            }
+        },
+    )
+
+    cached_result = _try_replay_cache(
+        config=config,
+        fingerprint=fingerprint,
+        task=resolved_task,
+        task_id=resolved_task_id,
+        start_url=resolved_start_url,
+    )
+    if cached_result is not None:
+        cached_result["_output_dir"] = str(resolved_output_dir)
+        console.print(cached_result.get("final_response") or cached_result.get("submission") or "Task finished.")
+        return cached_result
 
     model = get_model(config.get("model", {}))
     env = get_environment(config.get("environment", {}))
@@ -136,6 +295,7 @@ def run_one(
 
 @app.command()
 def main(
+    ctx: typer.Context,
     task: str = typer.Option(
         ..., "-t", "--task", help="Natural language task description."
     ),
@@ -153,11 +313,12 @@ def main(
         help="Launch headed local Playwright with devtools and keep it open for inspection.",
     ),
 ) -> Any:
+    resolved_config_spec = list(config_spec) + _extra_config_specs(list(ctx.args))
     return run_one(
         task=task,
         task_id=task_id,
         start_url=start_url,
-        config_spec=config_spec,
+        config_spec=resolved_config_spec,
         output_dir=output_dir,
         debug=debug,
     )

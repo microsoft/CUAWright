@@ -5,11 +5,27 @@ import shutil
 from pathlib import Path
 from typing import Any
 
+from pydantic import BaseModel, Field
 import yaml
 
 from webwright import package_dir
 
 builtin_config_dir = package_dir / "config"
+
+
+class CacheConfig(BaseModel):
+    enabled: bool = False
+    directory: Path = Path("~/.cache/webwright")
+    ttl_seconds: int = 604800
+    validate_url: bool = True
+    fingerprint_fields: list[str] = Field(
+        default_factory=lambda: [
+            "task",
+            "start_url",
+            "model.model_name",
+            "environment.environment_class",
+        ]
+    )
 
 
 def _nest_key_value(key: str, value: Any) -> dict[str, Any]:
