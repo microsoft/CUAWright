@@ -6,14 +6,8 @@
 # Required env:
 #   - ANTHROPIC_API_KEY (agent, image_qa, and self_reflection tools)
 
-model: &model
+model:
   model_class: anthropic
   model_name: claude-opus-4-7
   anthropic_endpoint: https://api.anthropic.com/v1/messages
   anthropic_version: "2023-06-01"
-
-tools:
-  image_qa:
-    model: *model
-  self_reflection:
-    model: *model

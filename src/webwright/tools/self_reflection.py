@@ -44,27 +44,16 @@ import asyncio
 import base64
 import json
 import mimetypes
-import os
-import random
 import re
 import sys
-import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import httpx
-import yaml
-
-from webwright.models import get_model
 from webwright.models.base import text_part
-from webwright.models.openai_model import _extract_response_text
+from webwright.tools._model_config import load_tool_model
 
-DEFAULT_MODEL = "gpt-5.4"
-DEFAULT_ENDPOINT = "https://api.openai.com/v1/responses"
 DEFAULT_IMAGE_PARSE_MAX_RETRIES = 3
-
-_RETRYABLE_STATUS_CODES = frozenset({400, 408, 409, 425, 429, 500, 502, 503, 504})
 
 _PROMPT_FIELDS = (
     ("image_judge_system_prompt", True),
@@ -214,14 +203,6 @@ def _render_final_verdict_user_prompt(
                 "{image_reasonings} and {action_history_log}; double any literal "
                 "braces as {{ and }}."
             ) from exc
-
-    # additions: list[str] = []
-    # if "{action_history_log}" not in template and action_history_log:
-    #     additions.append(f"Action history log:\n{action_history_log}")
-    # if "{image_reasonings}" not in template and image_reasonings:
-    #     additions.append(f"Image reasonings:\n{image_reasonings}")
-    # if additions:
-    #     rendered = f"{rendered.rstrip()}\n\n" + "\n\n".join(additions)
     return rendered
 
 
@@ -236,195 +217,8 @@ def _high_detail_image_part_from_path(image_path: Path) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# OpenAI HTTP helpers (mirrors image_qa)
+# Model call: plain message list -> text
 # ---------------------------------------------------------------------------
-
-def _openai_config(
-    *, api_key: str, endpoint: str, model: str
-) -> tuple[str, str, str]:
-    resolved_key = api_key or os.environ.get("OPENAI_API_KEY", "")
-    if not resolved_key:
-        raise RuntimeError("Missing OPENAI_API_KEY.")
-    resolved_endpoint = endpoint or DEFAULT_ENDPOINT
-    resolved_model = model or os.environ.get("OPENAI_MODEL", DEFAULT_MODEL)
-    return resolved_key, resolved_endpoint, resolved_model
-
-
-def _load_structured_config(path: Path) -> dict[str, Any]:
-    text = path.read_text(encoding="utf-8")
-    if path.suffix.lower() in {".yaml", ".yml"}:
-        loaded = yaml.safe_load(text)
-    else:
-        loaded = json.loads(text)
-    if not isinstance(loaded, dict):
-        raise ValueError(f"Model config must be an object: {path}")
-    return loaded
-
-
-def _extract_model_config(config: dict[str, Any], *, tool_name: str) -> dict[str, Any]:
-    tool_model = (
-        config.get("tools", {})
-        .get(tool_name, {})
-        .get("model")
-    )
-    if isinstance(tool_model, dict):
-        return tool_model
-    model_config = config.get("model")
-    if isinstance(model_config, dict):
-        return model_config
-    return config
-
-
-def _resolve_model_config_path(model_config: str, *, workspace_dir: str = "") -> Path | None:
-    candidates: list[Path] = []
-    if model_config:
-        configured_path = Path(model_config)
-        candidates.append(configured_path)
-        if workspace_dir and not configured_path.is_absolute():
-            candidates.append(Path(workspace_dir) / configured_path)
-    env_config = os.environ.get("WEBWRIGHT_TOOL_MODEL_CONFIG", "")
-    if env_config:
-        candidates.append(Path(env_config))
-    if workspace_dir:
-        workspace_path = Path(workspace_dir)
-        candidates.extend(
-            [
-                workspace_path / "tool_model_config.json",
-                workspace_path / "config_snapshot" / "merged_config.yaml",
-            ]
-        )
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate.resolve()
-    return None
-
-
-def _load_model_config(model_config: str, *, workspace_dir: str = "", tool_name: str) -> dict[str, Any] | None:
-    config_path = _resolve_model_config_path(model_config, workspace_dir=workspace_dir)
-    if config_path is None:
-        return None
-    return _extract_model_config(_load_structured_config(config_path), tool_name=tool_name)
-
-
-def _model_from_config(
-    model_config: dict[str, Any],
-    *,
-    timeout_seconds: int,
-) -> Any:
-    resolved = dict(model_config)
-    resolved["request_timeout_seconds"] = timeout_seconds
-    return get_model(resolved)
-
-
-def _model_endpoint(model_client: Any) -> str:
-    config = getattr(model_client, "config", None)
-    for key in ("openai_endpoint", "anthropic_endpoint", "openrouter_endpoint"):
-        value = getattr(config, key, "")
-        if value:
-            return str(value)
-    return ""
-
-
-def _sleep_backoff(attempt: int, base_delay: float) -> float:
-    delay = base_delay * (2 ** (attempt - 1))
-    delay += random.uniform(0.0, delay * 0.25)
-    time.sleep(delay)
-    return delay
-
-
-def _post_with_retry(
-    client: httpx.Client,
-    url: str,
-    *,
-    headers: dict[str, str],
-    json_body: dict[str, Any],
-    max_attempts: int,
-    base_delay: float,
-    tag: str,
-) -> httpx.Response:
-    last_error = ""
-    for attempt in range(1, max_attempts + 1):
-        try:
-            response = client.post(url, headers=headers, json=json_body)
-        except httpx.TransportError as exc:
-            last_error = f"{type(exc).__name__}: {exc}"
-            if attempt >= max_attempts:
-                raise
-            delay = _sleep_backoff(attempt, base_delay)
-            print(
-                f"[{tag}] transport error {attempt}/{max_attempts}: "
-                f"{last_error}; retrying in {delay:.2f}s",
-                file=sys.stderr,
-            )
-            continue
-
-        if response.status_code in _RETRYABLE_STATUS_CODES and attempt < max_attempts:
-            snippet = response.text[:500].replace("\n", " ") if response.text else ""
-            delay = _sleep_backoff(attempt, base_delay)
-            print(
-                f"[{tag}] retryable HTTP {response.status_code} {attempt}/{max_attempts}: "
-                f"{snippet}; retrying in {delay:.2f}s",
-                file=sys.stderr,
-            )
-            continue
-
-        response.raise_for_status()
-        return response
-
-    raise RuntimeError("self_reflection retry loop exited without returning")
-
-
-# ---------------------------------------------------------------------------
-# OpenAI call: plain message list -> text
-# ---------------------------------------------------------------------------
-
-def _call_openai(
-    *,
-    system_prompt: str,
-    user_content: list[dict[str, Any]],
-    api_key: str = "",
-    endpoint: str = "",
-    model: str = "",
-    timeout_seconds: int,
-    max_new_tokens: int,
-    max_attempts: int,
-    retry_base_delay: float,
-    tag: str,
-) -> str:
-    payload: dict[str, Any] = {
-        "model": model,
-        "input": [
-            {
-                "type": "message",
-                "role": "developer",
-                "content": [text_part(system_prompt)],
-            },
-            {
-                "type": "message",
-                "role": "user",
-                "content": user_content,
-            },
-        ],
-        "max_output_tokens": max_new_tokens,
-    }
-
-    with httpx.Client(timeout=timeout_seconds) as client:
-        response = _post_with_retry(
-            client,
-            endpoint,
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {api_key}",
-            },
-            json_body=payload,
-            max_attempts=max_attempts,
-            base_delay=retry_base_delay,
-            tag=tag,
-        )
-        response_payload = response.json()
-
-    return _extract_response_text(response_payload).strip()
-
 
 def _call_model(
     *,
@@ -435,17 +229,20 @@ def _call_model(
 ) -> str:
     return model_client(
         [
-            {
-                "role": "system",
-                "content": system_prompt,
-            },
-            {
-                "role": "user",
-                "content": user_content,
-            },
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content},
         ],
         max_output_tokens=max_new_tokens,
     ).strip()
+
+
+def _model_endpoint(model_client: Any) -> str:
+    config = getattr(model_client, "config", None)
+    for key in ("openai_endpoint", "anthropic_endpoint", "openrouter_endpoint"):
+        value = getattr(config, key, "")
+        if value:
+            return str(value)
+    return ""
 
 
 # ---------------------------------------------------------------------------
@@ -488,7 +285,7 @@ def _parse_final_verdict(response: str) -> int | None:
     if not matches:
         return None
     tail = response[matches[-1].end():].strip()
-    m = re.match(r"""^[\'\"\u201c\u201d\u2018\u2019\s]*(success|failure)\b""", tail, re.IGNORECASE)
+    m = re.match(r"""^[\'\"“”‘’\s]*(success|failure)\b""", tail, re.IGNORECASE)
     if not m:
         return None
     return 1 if m.group(1).lower() == "success" else 0
@@ -503,13 +300,7 @@ async def _judge_one_image(
     image_path: Path,
     image_judge_system_prompt: str,
     image_judge_user_prompt: str,
-    api_key: str,
-    endpoint: str,
-    model: str,
-    model_client: Any | None,
-    timeout_seconds: int,
-    max_attempts: int,
-    retry_base_delay: float,
+    model_client: Any,
     max_new_tokens: int,
     max_parse_retries: int,
 ) -> dict[str, Any]:
@@ -521,28 +312,13 @@ async def _judge_one_image(
     last_response = ""
     last_error: BaseException | None = None
     for attempt in range(1, max_parse_retries + 1):
-        if model_client is not None:
-            last_response = await asyncio.to_thread(
-                _call_model,
-                model_client=model_client,
-                system_prompt=image_judge_system_prompt,
-                user_content=user_content,
-                max_new_tokens=max_new_tokens,
-            )
-        else:
-            last_response = await asyncio.to_thread(
-                _call_openai,
-                system_prompt=image_judge_system_prompt,
-                user_content=user_content,
-                api_key=api_key,
-                endpoint=endpoint,
-                model=model,
-                timeout_seconds=timeout_seconds,
-                max_new_tokens=max_new_tokens,
-                max_attempts=max_attempts,
-                retry_base_delay=retry_base_delay,
-                tag="self_reflection.image",
-            )
+        last_response = await asyncio.to_thread(
+            _call_model,
+            model_client=model_client,
+            system_prompt=image_judge_system_prompt,
+            user_content=user_content,
+            max_new_tokens=max_new_tokens,
+        )
         try:
             reasoning, score = _parse_image_judge_response(last_response)
             return {
@@ -611,22 +387,10 @@ async def run_self_reflection_async(
     max_image_parse_retries: int,
     final_max_new_tokens: int,
     image_max_new_tokens: int,
-    api_key: str,
-    endpoint: str,
-    model: str,
-    model_config: dict[str, Any] | None = None,
-    timeout_seconds: int = 120,
-    max_attempts: int = 4,
-    retry_base_delay: float = 1.0,
+    model_client: Any,
 ) -> SelfReflectionResult:
-    model_client = (
-        _model_from_config(model_config, timeout_seconds=timeout_seconds)
-        if model_config is not None
-        else None
-    )
-    if model_client is not None:
-        model = str(getattr(model_client.config, "model_name", ""))
-        endpoint = _model_endpoint(model_client)
+    model_name = str(getattr(model_client.config, "model_name", ""))
+    endpoint = _model_endpoint(model_client)
 
     if images:
         per_image = await asyncio.gather(
@@ -635,13 +399,7 @@ async def run_self_reflection_async(
                     image_path=path,
                     image_judge_system_prompt=image_judge_system_prompt,
                     image_judge_user_prompt=image_judge_user_prompt,
-                    api_key=api_key,
-                    endpoint=endpoint,
-                    model=model,
                     model_client=model_client,
-                    timeout_seconds=timeout_seconds,
-                    max_attempts=max_attempts,
-                    retry_base_delay=retry_base_delay,
                     max_new_tokens=image_max_new_tokens,
                     max_parse_retries=max_image_parse_retries,
                 )
@@ -668,28 +426,13 @@ async def run_self_reflection_async(
     for path_str in image_paths:
         user_content.append(_high_detail_image_part_from_path(Path(path_str)))
 
-    if model_client is not None:
-        final_response = await asyncio.to_thread(
-            _call_model,
-            model_client=model_client,
-            system_prompt=final_verdict_system_prompt,
-            user_content=user_content,
-            max_new_tokens=final_max_new_tokens,
-        )
-    else:
-        final_response = await asyncio.to_thread(
-            _call_openai,
-            system_prompt=final_verdict_system_prompt,
-            user_content=user_content,
-            api_key=api_key,
-            endpoint=endpoint,
-            model=model,
-            timeout_seconds=timeout_seconds,
-            max_new_tokens=final_max_new_tokens,
-            max_attempts=max_attempts,
-            retry_base_delay=retry_base_delay,
-            tag="self_reflection.final",
-        )
+    final_response = await asyncio.to_thread(
+        _call_model,
+        model_client=model_client,
+        system_prompt=final_verdict_system_prompt,
+        user_content=user_content,
+        max_new_tokens=final_max_new_tokens,
+    )
     predicted_label = _parse_final_verdict(final_response)
 
     return SelfReflectionResult(
@@ -699,7 +442,7 @@ async def run_self_reflection_async(
         final_system_msg=final_verdict_system_prompt,
         final_response=final_response,
         predicted_label=predicted_label,
-        model=model,
+        model=model_name,
         endpoint=endpoint,
     )
 
@@ -760,16 +503,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--model-config",
         default="",
         help=(
-            "Path to a JSON/YAML model config. If omitted, self_reflection also checks "
-            "WEBWRIGHT_TOOL_MODEL_CONFIG and <workspace-dir>/config_snapshot/merged_config.yaml."
+            "Path to a JSON/YAML config containing a top-level `model:` block. "
+            "If omitted, reads <workspace-dir>/config_snapshot/merged_config.yaml."
         ),
     )
-    parser.add_argument("--model", default="", help="Override OpenAI model when --model-config is omitted.")
-    parser.add_argument("--endpoint", default="", help="Override OpenAI Responses endpoint.")
-    parser.add_argument("--api-key", default="", help="Override OpenAI API key.")
     parser.add_argument("--timeout-seconds", type=int, default=120)
-    parser.add_argument("--max-attempts", type=int, default=4, help="HTTP retry count per OpenAI call.")
-    parser.add_argument("--retry-base-delay", type=float, default=1.0)
     return parser
 
 
@@ -830,17 +568,11 @@ def main(argv: list[str] | None = None) -> int:
             file=sys.stderr,
         )
 
-    model_config = _load_model_config(
-        args.model_config,
+    model_client = load_tool_model(
+        model_config_arg=args.model_config,
         workspace_dir=args.workspace_dir,
-        tool_name="self_reflection",
+        timeout_seconds=args.timeout_seconds,
     )
-    if model_config is None:
-        api_key, endpoint, model = _openai_config(
-            api_key=args.api_key, endpoint=args.endpoint, model=args.model
-        )
-    else:
-        api_key, endpoint, model = "", "", ""
 
     result = run_self_reflection(
         images=resolved_images,
@@ -852,13 +584,7 @@ def main(argv: list[str] | None = None) -> int:
         max_image_parse_retries=args.max_image_parse_retries,
         final_max_new_tokens=args.final_max_new_tokens,
         image_max_new_tokens=args.image_max_new_tokens,
-        api_key=api_key,
-        endpoint=endpoint,
-        model=model,
-        model_config=model_config,
-        timeout_seconds=args.timeout_seconds,
-        max_attempts=args.max_attempts,
-        retry_base_delay=args.retry_base_delay,
+        model_client=model_client,
     )
 
     payload = result.to_dict()
