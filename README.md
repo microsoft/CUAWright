@@ -150,6 +150,10 @@ python -m webwright.run.cli \
     -o outputs/default
 ```
 
+> **Note:** `report.json` is only generated when `-c task_showcase.yaml` is
+> included. A plain `base.yaml` run produces `trajectory.json` and debug
+> artifacts but no `report.json`.
+
 The run writes `task_showcase/tasks/<short_id>/task.json` and `report.json`
 inside the output workspace. Render those generated files without copying them
 back into the repo:
