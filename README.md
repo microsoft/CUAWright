@@ -1,5 +1,5 @@
 # Webwright
-
+ 
 <p align="center">
   <img src="assets/webwright_logo.svg" alt="Webwright logo" width="320">
 </p>
