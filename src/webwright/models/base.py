@@ -212,6 +212,8 @@ class BaseModelConfig(PydanticBaseModel):
     format_error_template: OptStr = DEFAULT_FORMAT_ERROR_TEMPLATE
     attach_observation_screenshot: bool = True
     action_field: str = "bash_command"
+    throttle_rate: float = 0.0
+    throttle_capacity: int = 1
 
     @field_validator("action_field")
     @classmethod
@@ -429,6 +431,13 @@ class BaseModel:
         )
 
     async def _post_with_retries(self, payload: dict[str, Any]) -> dict[str, Any]:
+        if self.config.throttle_rate > 0:
+            from webwright.utils.throttle import get_global_throttle
+
+            bucket = await get_global_throttle(
+                self.config.throttle_rate, self.config.throttle_capacity
+            )
+            await bucket.acquire()
         headers = self._request_headers()
         url = self._post_url()
         for attempt in range(max(self._MAX_RATE_LIMIT_RETRIES, self._MAX_TRANSIENT_RETRIES) + 1):
