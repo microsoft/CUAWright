@@ -39,6 +39,10 @@ class AgentConfig(BaseModel):
     require_self_reflection_success: bool = False
     summary_every_n_steps: int = 0
     summary_user_prompt: str = DEFAULT_SUMMARY_USER_PROMPT
+    # Strip the ARIA snapshot payload from observation messages older than the last N
+    # to bound context growth in browser-driven modes. Any value <= 0 disables pruning
+    # (default). Opt in per config (e.g. local_browser.yaml sets this to 1).
+    keep_last_n_observations: int = -1
     output_path: Path | None = None
 
 
@@ -265,7 +269,36 @@ class DefaultAgent:
 
     def add_messages(self, *messages: dict[str, Any]) -> list[dict[str, Any]]:
         self.messages.extend(messages)
+        self._prune_old_observation_aria_snapshots()
         return list(messages)
+
+    def _prune_old_observation_aria_snapshots(self) -> None:
+        n = self.config.keep_last_n_observations
+        if n <= 0:
+            return
+        obs_indices = [
+            i for i, m in enumerate(self.messages)
+            if m.get("extra", {}).get("observation")
+        ]
+        if len(obs_indices) <= n:
+            return
+        placeholder = "(ARIA snapshot pruned; see most recent observation)"
+        for idx in obs_indices[:-n]:
+            msg = self.messages[idx]
+            obs = msg["extra"]["observation"]
+            aria = obs.get("aria_snapshot", "")
+            if not aria:
+                continue
+            content = msg.get("content")
+            if isinstance(content, list):
+                for part in content:
+                    if isinstance(part, dict) and part.get("type") in ("text", "input_text"):
+                        text = part.get("text", "")
+                        if aria in text:
+                            part["text"] = text.replace(aria, placeholder)
+            elif isinstance(content, str) and aria in content:
+                msg["content"] = content.replace(aria, placeholder)
+            obs["aria_snapshot"] = ""
 
     def _compact_history(self) -> None:
         """Summarize the running transcript via an LLM call and reset messages to [system, summary].
