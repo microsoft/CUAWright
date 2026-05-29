@@ -18,6 +18,7 @@
 #   - OPENAI_API_KEY    (only when the configured agent or tool model_class is openai)
 #   - ANTHROPIC_API_KEY (only when stacking model_claude.yaml)
 #   - BROWSERBASE_API_KEY + BROWSERBASE_PROJECT_ID (only when browser_mode=browserbase)
+#   - STEEL_API_KEY (only when browser_mode=steel)
 
 model:
   # model_class / model_name / endpoint come from the model modifier yaml.
@@ -57,11 +58,12 @@ environment:
   command_timeout_seconds: 240
   shell: /bin/bash
   # Path to a shell file that exports credentials (BROWSERBASE_API_KEY,
-  # BROWSERBASE_PROJECT_ID, ANTHROPIC_API_KEY, OPENAI_API_KEY, ...). Leave
-  # empty to read these from the parent process environment instead.
+  # BROWSERBASE_PROJECT_ID, STEEL_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY,
+  # ...). Leave empty to read these from the parent process environment instead.
   credentials_file:
   # Set to "local" to make the agent's generated scripts launch a local
-  # Playwright browser; "browserbase" uses a Browserbase cloud session.
+  # Playwright browser; "browserbase" uses a Browserbase cloud session and
+  # "steel" uses a Steel cloud session.
   browser_mode: local
   task_metadata_filename: task.json
   final_script_name: final_script.py
@@ -115,9 +117,36 @@ agent:
 
     ## Browser Mode
 
-    The harness exposes `BROWSER_MODE` to your scripts (value: `browserbase` or `local`).
+    The harness exposes `BROWSER_MODE` to your scripts (value: `browserbase`, `steel`, or `local`).
     - When `BROWSER_MODE=browserbase` (default): create a Browserbase cloud session via the
-      `BROWSERBASE_API_KEY` / `BROWSERBASE_PROJECT_ID` env vars and connect over CDP.
+      `BROWSERBASE_API_KEY` / `BROWSERBASE_PROJECT_ID` env vars and connect over CDP, e.g.:
+      ```python
+      async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(
+          "https://api.browserbase.com/v1/sessions",
+          headers={"x-bb-api-key": os.environ["BROWSERBASE_API_KEY"]},
+          json={"projectId": os.environ["BROWSERBASE_PROJECT_ID"]},
+        )
+        resp.raise_for_status()
+        session = resp.json()
+      browser = await playwright.chromium.connect_over_cdp(session["connectUrl"])
+      ```
+    - When `BROWSER_MODE=steel`: create a Steel cloud session via the `STEEL_API_KEY`
+      env var (no project id) and connect over CDP to a constructed websocket URL, e.g.:
+      ```python
+      key = os.environ["STEEL_API_KEY"]
+      async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(
+          "https://api.steel.dev/v1/sessions",
+          headers={"Steel-Api-Key": key},
+          json={},  # optional: {"solveCaptcha": True, "useProxy": True}
+        )
+        resp.raise_for_status()
+        session = resp.json()
+      browser = await playwright.chromium.connect_over_cdp(
+        f"wss://connect.steel.dev?apiKey={key}&sessionId={session['id']}"
+      )
+      ```
     - When `BROWSER_MODE=local`: launch a local Playwright Chromium browser
       (`playwright.chromium.launch(...)`) instead. No external credentials required.
 
@@ -337,7 +366,7 @@ agent:
     - The required final artifact is `{{ final_script_path }}`.
     - Create `final_runs/run_<id>/` folders for every clean execution of the final script. Use an integer ID higher than any that already exists for each new attempt.
     - Store each run's `final_script.py`, `final_script_log.txt`, and final verification screenshots **only** inside that run folder.
-    - The browser mode is `{{ browser_mode }}`. Match your generated scripts to that mode (Browserbase cloud session vs. local Playwright launch).
+    - The browser mode is `{{ browser_mode }}`. Match your generated scripts to that mode (Browserbase or Steel cloud session vs. local Playwright launch).
 
     ## Web Task Rules
 

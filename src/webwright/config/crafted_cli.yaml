@@ -33,7 +33,7 @@ agent:
     - Put exactly one shell command in the `bash_command` string. Never emit raw Python or shell outside that field. Use heredocs (`python - <<'PY' ... PY`) to run Python inline when needed.
     - Escape newlines and quotes properly so the whole object remains valid JSON.
     - You should reason internally, then execute one bash command, then inspect the next observation.
-    - There is NO persistent browser state. Every Playwright run must create a fresh Browserbase cloud session, navigate from scratch, and reconstruct state via code.
+    - There is NO persistent browser state. Every Playwright run must create a fresh cloud browser session matching `BROWSER_MODE` (`browserbase` or `steel`), navigate from scratch, and reconstruct state via code.
     - Step screenshots are NOT automatically attached to your prompt in this benchmark variant. If you need visual interpretation, you must invoke the image QA tool yourself.
     - Set `"done": true` only when the task goal is complete and `final_script.py` is the final artifact.
     - NEVER set `"done": true` in the same response as a non-empty `bash_command`. Declare done in a SEPARATE response AFTER you have already executed and verified the final script in a prior step.
@@ -69,7 +69,7 @@ agent:
        `help=` (copied from the docstring), and a sensible default equal to the
        concrete task value so that running `python final_script.py` with no
        arguments reproduces the original task.
-    5. The CLI must still perform the full end-to-end run (Browserbase session,
+    5. The CLI must still perform the full end-to-end run (cloud browser session,
        screenshots, `final_script_log.txt`) using the provided arguments, and
        the action log must echo the resolved parameter values on a line like
        `step 0 params: Make=Toyota Model=Corolla min_year=2018 ...` so the judge
@@ -94,8 +94,18 @@ agent:
     SCREENSHOTS = WORKSPACE / "screenshots"
     SCREENSHOTS.mkdir(parents=True, exist_ok=True)
 
-    async def create_browserbase_session():
+    async def create_cloud_browser_cdp_url():
+      mode = os.environ.get("BROWSER_MODE", "browserbase")
       async with httpx.AsyncClient(timeout=30) as client:
+        if mode == "steel":
+          key = os.environ["STEEL_API_KEY"]
+          response = await client.post(
+            "https://api.steel.dev/v1/sessions",
+            headers={"Steel-Api-Key": key},
+            json={},
+          )
+          response.raise_for_status()
+          return f"wss://connect.steel.dev?apiKey={key}&sessionId={response.json()['id']}"
         response = await client.post(
           "https://api.browserbase.com/v1/sessions",
           headers={
@@ -110,12 +120,12 @@ agent:
           },
         )
         response.raise_for_status()
-        return response.json()
+        return response.json()["connectUrl"]
 
     async def main():
-      session = await create_browserbase_session()
+      cdp_url = await create_cloud_browser_cdp_url()
       async with async_playwright() as playwright:
-        browser = await playwright.chromium.connect_over_cdp(session["connectUrl"])
+        browser = await playwright.chromium.connect_over_cdp(cdp_url)
         context = browser.contexts[0] if browser.contexts else await browser.new_context()
         page = context.pages[0] if context.pages else await context.new_page()
         page.set_viewport_size({"width": 1280, "height": 1800}) # use 1280x1800 viewport for better desktop site rendering and more visible content in screenshots
@@ -320,7 +330,7 @@ agent:
     - The required final artifact is `{{ final_script_path }}`.
     - Create `final_runs/run_<id>/` folders for every clean execution of the final script. Use an integer ID higher than any that already exists for each new attempt.
     - Store each run's `final_script.py`, `final_script_log.txt`, and final verification screenshots **only** inside that run folder.
-    - Always use Browserbase cloud sessions.
+    - Always use a cloud browser session matching `BROWSER_MODE` (`browserbase` or `steel`), never a local launch.
 
     ## Web Task Rules
 

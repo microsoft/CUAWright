@@ -185,7 +185,17 @@ playwright install chromium
 Export credentials for the configured backend (for example, `OPENAI_API_KEY`
 with `model_openai.yaml` or `ANTHROPIC_API_KEY` with `model_claude.yaml`). The
 `image_qa` and `self_reflection` tools use the same configured model by default,
-so an Anthropic run does not require an OpenAI key. Then:
+so an Anthropic run does not require an OpenAI key.
+
+The browser backend is selected by `environment.browser_mode` (default `local`):
+
+| `browser_mode` | What the agent's scripts do | Required env |
+|----------------|-----------------------------|--------------|
+| `local`        | Launch a local Playwright Chromium | — |
+| `browserbase`  | Create a [Browserbase](https://browserbase.com) cloud session over CDP | `BROWSERBASE_API_KEY`, `BROWSERBASE_PROJECT_ID` |
+| `steel`        | Create a [Steel](https://steel.dev) cloud session over CDP | `STEEL_API_KEY` |
+
+Then:
 
 ```bash
 python -m webwright.run.cli \
