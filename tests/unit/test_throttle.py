@@ -56,25 +56,32 @@ async def test_burst_capacity_replenishes() -> None:
     await bucket.acquire()
 
 
-# ---- Singleton ---------------------------------------------------------------
+# ---- Registry ----------------------------------------------------------------
 
 
 @pytest.fixture(autouse=True)
-def _reset_singleton() -> None:
+def _reset_registry() -> None:
     reset_global_throttle()
     yield  # type: ignore[misc]
     reset_global_throttle()
 
 
 @pytest.mark.asyncio
-async def test_singleton_returns_same_instance() -> None:
+async def test_same_config_returns_same_instance() -> None:
     a = await get_global_throttle(10.0, 2)
     b = await get_global_throttle(10.0, 2)
     assert a is b
 
 
 @pytest.mark.asyncio
-async def test_reset_clears_singleton() -> None:
+async def test_different_config_returns_different_instance() -> None:
+    a = await get_global_throttle(10.0, 2)
+    b = await get_global_throttle(5.0, 1)
+    assert a is not b
+
+
+@pytest.mark.asyncio
+async def test_reset_clears_registry() -> None:
     a = await get_global_throttle(10.0, 2)
     reset_global_throttle()
     b = await get_global_throttle(10.0, 2)

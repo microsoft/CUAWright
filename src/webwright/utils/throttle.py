@@ -47,25 +47,30 @@ class AsyncTokenBucket:
             await asyncio.sleep(wait)
 
 
-# ---- process-global singleton ------------------------------------------------
+# ---- process-global registry -------------------------------------------------
 
-_global_throttle: AsyncTokenBucket | None = None
-_global_lock = asyncio.Lock()
+_throttle_registry: dict[tuple[float, int], AsyncTokenBucket] = {}
+_registry_lock = asyncio.Lock()
 
 
 async def get_global_throttle(rate: float, capacity: int = 1) -> AsyncTokenBucket:
-    """Return (and lazily create) the process-wide throttle bucket."""
-    global _global_throttle
-    if _global_throttle is not None:
-        return _global_throttle
-    async with _global_lock:
+    """Return (and lazily create) a throttle bucket for the given config.
+
+    Each unique ``(rate, capacity)`` pair receives its own bucket so that
+    different model configurations coexisting in the same process are
+    throttled independently.
+    """
+    key = (rate, capacity)
+    bucket = _throttle_registry.get(key)
+    if bucket is not None:
+        return bucket
+    async with _registry_lock:
         # Double-check after acquiring the lock.
-        if _global_throttle is None:
-            _global_throttle = AsyncTokenBucket(rate, capacity)
-        return _global_throttle
+        if key not in _throttle_registry:
+            _throttle_registry[key] = AsyncTokenBucket(rate, capacity)
+        return _throttle_registry[key]
 
 
 def reset_global_throttle() -> None:
-    """Reset the singleton — mainly for tests."""
-    global _global_throttle
-    _global_throttle = None
+    """Clear the registry — mainly for tests."""
+    _throttle_registry.clear()
