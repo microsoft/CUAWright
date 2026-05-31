@@ -18,7 +18,7 @@
 
 Webwright gives LLM a terminal where it can launch multiple browser sessions to inspect the page and complete a web task. It captures and inspects page screenshots/states only when needed. It enforces each web task to be completed end-to-end within a re-runnable Python script, i.e. your web agent browsing history is a single code file. No multi-agent system, no graph engine, no plugin layer, no hidden orchestration — just a terminal, a browser, and a model.
 
-Already got your favorite agents, and wonder how to make Claude Code, Codex, Hermes, OpenClaw more capable in browser tasks? Consider adding [Webwright plugin/skills](#-use-as-a-claude-code-skill)!
+Already got your favorite agents, and wonder how to make Claude Code, Codex, Hermes, OpenClaw more capable in browser tasks? Consider adding [Webwright plugin/skills](#-use-as-a-plugin)!
 
 ---
 
@@ -205,6 +205,7 @@ python -m webwright.run.cli \
 | `--start-url` | Initial page. |
 | `--task-id` | Output subfolder name. |
 | `-o` | Output directory. |
+| `--debug` | Launch headed local Playwright with devtools and keep it open for inspection. |
 
 ---
 
