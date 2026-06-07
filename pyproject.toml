@@ -19,6 +19,9 @@ dependencies = [
     "platformdirs>=4.0",
 ]
 
+[project.optional-dependencies]
+dev = ["pytest>=7.4"]
+
 [project.scripts]
 webwright = "webwright.run.cli:app"
 
