@@ -9,6 +9,7 @@ _MODEL_MAPPING = {
     "openai": "webwright.models.openai_model.OpenAIModel",
     "anthropic": "webwright.models.anthropic_model.AnthropicModel",
     "openrouter": "webwright.models.openrouter_model.OpenRouterModel",
+    "gemini": "webwright.models.gemini_model.GeminiModel",
 }
 
 
