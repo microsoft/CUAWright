@@ -16,9 +16,15 @@ the first task.
 python - <<'PY'
 import asyncio
 import os
+import sys
 from pathlib import Path
 
 from playwright.async_api import async_playwright
+
+# Windows: aria_snapshot()/page text often contains non-cp1252 glyphs
+# (typography symbols, emoji, CJK, math). Force utf-8 so print() doesn't
+# crash with UnicodeEncodeError under the default cp1252 stdout. No-op on POSIX.
+sys.stdout.reconfigure(encoding="utf-8")
 
 WORKSPACE = Path(os.environ.get("WORKSPACE_DIR", "."))
 SCREENSHOTS = WORKSPACE / "screenshots"
@@ -45,6 +51,12 @@ async def main():
 asyncio.run(main())
 PY
 ```
+
+> **Windows note:** the `sys.stdout.reconfigure(encoding="utf-8")` line is
+> required on Windows, where Python defaults `sys.stdout` to `cp1252`. Page
+> text from `aria_snapshot()` / `title()` routinely contains glyphs outside
+> cp1252, so without it `print(...)` dies with `UnicodeEncodeError`. The call
+> is a harmless no-op on POSIX (already utf-8).
 
 Rules:
 
@@ -127,9 +139,13 @@ Guidelines for the interactive path:
 - print the final datum at the end of the log.
 
 ```python
-import asyncio, os
+import asyncio, os, sys
 from pathlib import Path
 from playwright.async_api import async_playwright
+
+# Windows: force utf-8 stdout so the mirror print() in log() can't crash on
+# non-cp1252 page text (see the Windows note under "Browser launch skeleton").
+sys.stdout.reconfigure(encoding="utf-8")
 
 RUN_DIR = Path(__file__).parent
 SCREENSHOTS = RUN_DIR / "screenshots"
