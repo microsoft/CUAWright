@@ -16,7 +16,11 @@ the first task.
 python - <<'PY'
 import asyncio
 import os
+import sys
 from pathlib import Path
+
+# Force UTF-8 stdout to avoid UnicodeEncodeError on Windows (cp1252)
+sys.stdout.reconfigure(encoding="utf-8")
 
 from playwright.async_api import async_playwright
 
@@ -127,8 +131,12 @@ Guidelines for the interactive path:
 - print the final datum at the end of the log.
 
 ```python
-import asyncio, os
+import asyncio, os, sys
 from pathlib import Path
+
+# Force UTF-8 stdout to avoid UnicodeEncodeError on Windows (cp1252)
+sys.stdout.reconfigure(encoding="utf-8")
+
 from playwright.async_api import async_playwright
 
 RUN_DIR = Path(__file__).parent
