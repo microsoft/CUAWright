@@ -89,6 +89,10 @@ class DefaultAgent:
         self.extra_template_vars: dict[str, Any] = {}
         self.n_calls = 0
         self.n_format_errors = 0
+        # Track observations already scanned so pruning only visits new messages.
+        self._observations: list[tuple[dict[str, Any], dict[str, Any]]] = []
+        self._next_msg_index = 0
+        self._pruned_until_obs_index = 0
 
     def _debug_dir(self) -> Path | None:
         if self.config.output_path is None:
@@ -276,29 +280,47 @@ class DefaultAgent:
         n = self.config.keep_last_n_observations
         if n <= 0:
             return
-        obs_indices = [
-            i for i, m in enumerate(self.messages)
-            if m.get("extra", {}).get("observation")
-        ]
-        if len(obs_indices) <= n:
-            return
-        placeholder = "(ARIA snapshot pruned; see most recent observation)"
-        for idx in obs_indices[:-n]:
-            msg = self.messages[idx]
-            obs = msg["extra"]["observation"]
-            aria = obs.get("aria_snapshot", "")
-            if not aria:
-                continue
-            content = msg.get("content")
-            if isinstance(content, list):
-                for part in content:
-                    if isinstance(part, dict) and part.get("type") in ("text", "input_text"):
-                        text = part.get("text", "")
-                        if aria in text:
-                            part["text"] = text.replace(aria, placeholder)
-            elif isinstance(content, str) and aria in content:
-                msg["content"] = content.replace(aria, placeholder)
-            obs["aria_snapshot"] = ""
+
+        msgs = self.messages
+        observations = self._observations
+        curr_len = len(msgs)
+        next_idx = self._next_msg_index
+
+        # Scan only messages appended since the previous pruning pass.
+        if next_idx < curr_len:
+            self._next_msg_index = curr_len
+            append_observation = observations.append
+            for i in range(next_idx, curr_len):
+                msg = msgs[i]
+                extra = msg.get("extra")
+                if extra:
+                    obs = extra.get("observation")
+                    if obs:
+                        append_observation((msg, obs))
+
+        num_to_prune = len(observations) - n
+        pruned_idx = self._pruned_until_obs_index
+        if pruned_idx < num_to_prune:
+            self._pruned_until_obs_index = num_to_prune
+            placeholder = "(ARIA snapshot pruned; see most recent observation)"
+            for i in range(pruned_idx, num_to_prune):
+                msg, obs = observations[i]
+                aria = obs.get("aria_snapshot")
+                if aria:
+                    content = msg.get("content")
+                    if isinstance(content, list):
+                        for part in content:
+                            if not isinstance(part, dict) or part.get("type") not in ("text", "input_text"):
+                                continue
+                            text = part.get("text", "")
+                            new_text = text.replace(aria, placeholder)
+                            if new_text != text:
+                                part["text"] = new_text
+                    elif isinstance(content, str):
+                        new_text = content.replace(aria, placeholder)
+                        if new_text != content:
+                            msg["content"] = new_text
+                    obs["aria_snapshot"] = ""
 
     def _compact_history(self) -> None:
         """Summarize the running transcript via an LLM call and reset messages to [system, summary].
@@ -337,12 +359,21 @@ class DefaultAgent:
             extra={"interrupt_type": "HistoryCompactionSummary"},
         )
         self.messages = [system_message, summary_message]
+        # Reset pruning state after history compaction
+        self._observations = []
+        self._next_msg_index = 0
+        self._pruned_until_obs_index = 0
 
     def run(self, task: str = "", **kwargs) -> dict[str, Any]:
         self.extra_template_vars |= {"task": task, **kwargs}
         self.messages = []
         self.n_calls = 0
         self.n_format_errors = 0
+        # Reset pruning state for a new run
+        self._observations = []
+        self._next_msg_index = 0
+        self._pruned_until_obs_index = 0
+
         self.add_messages(
             self.model.format_message(role="system", content=self._render_template(self.config.system_template)),
             self.model.format_message(role="user", content=self._render_template(self.config.instance_template)),
