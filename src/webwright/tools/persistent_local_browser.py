@@ -140,6 +140,8 @@ def _cmd_create(args: argparse.Namespace) -> int:
     }
     if os.name == "posix":
         popen_kwargs["start_new_session"] = True
+    else:
+        popen_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
 
     proc = subprocess.Popen(chromium_args, **popen_kwargs)  # noqa: S603
     try:
@@ -183,6 +185,16 @@ def _cmd_info(args: argparse.Namespace) -> int:
 def _terminate_pid(pid: int, kill_timeout: float) -> str:
     if pid <= 0 or not _pid_alive(pid):
         return "not_running"
+    if os.name == "nt":
+        try:
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(pid)],
+                capture_output=True,
+                timeout=30,
+            )
+        except subprocess.TimeoutExpired:
+            pass
+        return "terminated"
     try:
         os.kill(pid, signal.SIGTERM)
     except ProcessLookupError:
