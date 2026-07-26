@@ -176,9 +176,15 @@ python assets/task_showcase/app.py \
 ### Install
 
 ```bash
-pip install -e .
-playwright install chromium
+uv tool install --editable .
+webwright-python -m playwright install chromium
 ```
+
+`webwright-python` runs repository Webwright scripts with the interpreter and
+locked dependencies from the shared uv-tool environment. It also uses
+`~/Library/Caches/ms-playwright` on macOS unless
+`PLAYWRIGHT_BROWSERS_PATH` is explicitly set. Repositories should call this
+runner instead of installing Playwright into their own `.venv`.
 
 ### Run
 
@@ -215,8 +221,8 @@ Webwright ships plugin manifests for both [Claude Code](https://docs.claude.com/
 Common runtime deps (install once after either path):
 
 ```bash
-pip install -e .
-playwright install chromium
+uv tool install --editable /absolute/path/to/Webwright
+webwright-python -m playwright install chromium
 ```
 
 <details>

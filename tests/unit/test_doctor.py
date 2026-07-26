@@ -22,6 +22,7 @@ def test_check_playwright():
 
     assert isinstance(ok, bool)
     assert isinstance(message, str)
+    assert "pip install playwright" not in message
 
 
 def test_check_chromium():

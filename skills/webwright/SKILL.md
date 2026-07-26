@@ -34,10 +34,12 @@ own native abilities**: you read PNGs with `Read` and verify success against
 
 ## Prerequisites (one-time)
 
-From the Webwright repo root:
+Install Webwright once as a shared uv tool, then install the browser into the
+shared Playwright cache:
 
 ```bash
-playwright install firefox
+uv tool install --editable /absolute/path/to/Webwright
+webwright-python -m playwright install firefox
 ```
 
 No API keys needed for this skill.
@@ -137,6 +139,8 @@ Mirror what `base.yaml`'s `instance_template` requires:
   to `final_script_log.txt`.
 - Do **not** install extra packages with pip/apt. `playwright`, `httpx`,
   `pydantic`, etc. are already installed.
+- Run Python scripts and modules with `webwright-python`; it uses Webwright's
+  uv-tool interpreter rather than the repository or Homebrew interpreter.
 - Once `final_script.py` exists, prefer incremental edits (`Edit`) over
   rewriting the whole file.
 

@@ -19,8 +19,12 @@ dependencies = [
     "platformdirs>=4.0",
 ]
 
+[dependency-groups]
+dev = ["pytest>=8.0"]
+
 [project.scripts]
 webwright = "webwright.run.cli:app"
+webwright-python = "webwright.run.script_runner:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

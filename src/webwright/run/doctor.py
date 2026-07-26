@@ -24,13 +24,17 @@ def check_playwright():
     if find_spec("playwright") is not None:
         return True, "playwright installed"
 
-    return False, ("playwright not installed\nFix: pip install playwright")
+    return False, (
+        "playwright not installed\n"
+        "Fix: install Webwright once with uv tool install, then use "
+        "webwright-python"
+    )
 
 
 def check_chromium():
     try:
         result = subprocess.run(
-            ["playwright", "install", "--dry-run"],
+            [sys.executable, "-m", "playwright", "install", "--dry-run"],
             capture_output=True,
             text=True,
         )
@@ -38,7 +42,10 @@ def check_chromium():
         if result.returncode == 0:
             return True, "chromium available"
 
-        return False, ("chromium missing\nFix: playwright install chromium")
+        return False, (
+            "chromium missing\n"
+            "Fix: webwright-python -m playwright install chromium"
+        )
 
     except Exception as e:
         return False, str(e)
@@ -71,7 +78,7 @@ def check_screenshot():
     except Exception:
         return False, (
             "unable to launch Chromium for screenshot validation\n"
-            "Fix: playwright install"
+            "Fix: webwright-python -m playwright install chromium"
         )
 
 
