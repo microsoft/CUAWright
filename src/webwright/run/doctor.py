@@ -1,14 +1,24 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import sys
+import tempfile
 from importlib.util import find_spec
 from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 
 console = Console()
+
+# Engines Webwright actually uses. Firefox first: the skill contract pins it
+# because Akamai-fronted sites reject Playwright Chromium with
+# ERR_HTTP2_PROTOCOL_ERROR on TLS/H2 fingerprinting.
+BROWSER_ENGINES = ("firefox", "chromium")
+
+# Every model backend shipped under webwright/models/.
+MODEL_BACKEND_ENV_VARS = ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "OPENROUTER_API_KEY")
 
 
 def check_python():
@@ -27,77 +37,195 @@ def check_playwright():
     return False, ("playwright not installed\nFix: pip install playwright")
 
 
-def check_chromium():
+def _parse_install_locations(output: str) -> dict[str, Path]:
+    """Map each Playwright browser key to the directory it installs into.
+
+    ``playwright install --dry-run`` prints a header line per browser followed
+    by an indented ``Install location:`` line, and it does so whether or not the
+    browser is actually present on disk.
+    """
+    locations: dict[str, Path] = {}
+    current: str | None = None
+
+    for line in output.splitlines():
+        header = re.search(r"\(playwright ([a-z0-9-]+) v[^)]+\)", line)
+
+        if header:
+            current = header.group(1)
+            continue
+
+        if current and "Install location:" in line:
+            locations[current] = Path(line.split("Install location:", 1)[1].strip())
+            current = None
+
+    return locations
+
+
+def check_browsers():
+    """Verify that a Playwright engine is actually present on disk.
+
+    Two bugs here previously. The command was invoked as a bare ``playwright``
+    console script, which Windows cannot resolve -- surfacing a raw
+    ``[WinError 2]`` instead of an actionable message. And the check only looked
+    at the return code, which is 0 even when no browser is installed, so it
+    could never fail for the right reason. Parse the reported install locations
+    and stat them instead.
+    """
+    if find_spec("playwright") is None:
+        return False, ("playwright not installed\nFix: pip install playwright")
+
     try:
         result = subprocess.run(
-            ["playwright", "install", "--dry-run"],
+            [sys.executable, "-m", "playwright", "install", "--dry-run"],
             capture_output=True,
             text=True,
+            timeout=60,
         )
-
-        if result.returncode == 0:
-            return True, "chromium available"
-
-        return False, ("chromium missing\nFix: playwright install chromium")
-
     except Exception as e:
-        return False, str(e)
-
-
-def check_screenshot():
-    try:
-        from playwright.sync_api import sync_playwright
-
-        screenshot_path = Path("doctor_test.png")
-
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-
-            page = browser.new_page()
-
-            page.set_content("<h1>Webwright Doctor</h1>")
-
-            page.screenshot(path=str(screenshot_path))
-
-            browser.close()
-
-        if screenshot_path.exists():
-            screenshot_path.unlink(missing_ok=True)
-
-            return True, "screenshot capture working"
-
-        return False, "screenshot file was not created"
-
-    except Exception:
         return False, (
-            "unable to launch Chromium for screenshot validation\n"
-            "Fix: playwright install"
+            f"unable to query the Playwright driver: {e}\n"
+            "Fix: pip install playwright"
         )
 
+    if result.returncode != 0:
+        return False, (
+            "playwright driver unavailable\nFix: pip install playwright"
+        )
 
-def check_openai_key():
-    if os.getenv("OPENAI_API_KEY"):
-        return True, "OPENAI_API_KEY found"
+    locations = _parse_install_locations(result.stdout)
+
+    if not locations:
+        return False, (
+            "could not parse 'playwright install --dry-run' output\n"
+            "Fix: playwright install firefox"
+        )
+
+    found = [
+        engine
+        for engine in BROWSER_ENGINES
+        if engine in locations and locations[engine].exists()
+    ]
+    missing = [engine for engine in BROWSER_ENGINES if engine not in found]
+
+    if found:
+        detail = f"{', '.join(found)} available"
+
+        if missing:
+            detail += f" (not installed: {', '.join(missing)})"
+
+        return True, detail
 
     return False, (
-        "OPENAI_API_KEY missing\nFix: set the OPENAI_API_KEY environment variable"
+        "no Playwright browsers installed\nFix: playwright install firefox"
     )
 
 
+def check_screenshot():
+    """Validate real rendering with the engine the skill actually mandates.
+
+    This previously hard-coded Chromium, so a correctly-provisioned Firefox-only
+    setup -- which is what ``skills/webwright/reference/playwright_patterns.md``
+    tells users to install -- was reported as FAIL. It also wrote
+    ``doctor_test.png`` into the caller's working directory; use a temp dir.
+    """
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        return False, ("playwright not installed\nFix: pip install playwright")
+
+    errors: list[str] = []
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        screenshot_path = Path(tmpdir) / "doctor_test.png"
+
+        try:
+            with sync_playwright() as p:
+                for engine in BROWSER_ENGINES:
+                    try:
+                        browser = getattr(p, engine).launch(headless=True)
+                    except Exception as e:
+                        errors.append(f"{engine}: {type(e).__name__}")
+                        continue
+
+                    try:
+                        page = browser.new_page()
+
+                        page.set_content("<h1>Webwright Doctor</h1>")
+
+                        page.screenshot(path=str(screenshot_path))
+                    finally:
+                        browser.close()
+
+                    if screenshot_path.exists():
+                        return True, f"screenshot capture working ({engine})"
+
+                    errors.append(f"{engine}: screenshot file was not created")
+        except Exception as e:
+            errors.append(f"driver: {type(e).__name__}")
+
+    detail = f" [{'; '.join(errors)}]" if errors else ""
+
+    return False, (
+        f"unable to capture a screenshot with any installed browser{detail}\n"
+        "Fix: playwright install firefox"
+    )
+
+
+def check_model_backend():
+    """Accept any backend Webwright ships, and treat plugin mode as keyless.
+
+    Hard-failing on a missing ``OPENAI_API_KEY`` reported FAIL for two entirely
+    valid configurations: an Anthropic/OpenRouter CLI run, and the Claude Code /
+    Codex plugin path, which needs no key because the host agent drives the loop.
+    """
+    present = [name for name in MODEL_BACKEND_ENV_VARS if os.getenv(name)]
+
+    if present:
+        return True, f"{', '.join(present)} found"
+
+    return False, (
+        f"no model API key found (checked {', '.join(MODEL_BACKEND_ENV_VARS)})\n"
+        "Fix: set one for CLI mode -- not required when running Webwright as a "
+        "Claude Code / Codex plugin"
+    )
+
+
+def _find_manifest_root(start: Path | None = None) -> Path | None:
+    """Walk upward from ``start`` looking for the plugin manifest directories.
+
+    The manifests were resolved against the process working directory, so
+    ``webwright doctor`` reported FAIL from anywhere but the repo root.
+    """
+    current = (start or Path.cwd()).resolve()
+
+    for candidate in (current, *current.parents):
+        if (candidate / ".claude-plugin").is_dir() or (candidate / ".codex-plugin").is_dir():
+            return candidate
+
+    return None
+
+
 def check_plugin_manifests():
-    claude = Path(".claude-plugin/plugin.json")
-    codex = Path(".codex-plugin/plugin.json")
+    root = _find_manifest_root()
 
-    missing = []
+    if root is None:
+        return False, (
+            "missing plugin manifests: Claude, Codex\n"
+            "Fix: run doctor from inside the Webwright repo, or configure "
+            "Claude/Codex plugins"
+        )
 
-    if not claude.exists():
-        missing.append("Claude")
-
-    if not codex.exists():
-        missing.append("Codex")
+    missing = [
+        label
+        for label, relative in (
+            ("Claude", ".claude-plugin/plugin.json"),
+            ("Codex", ".codex-plugin/plugin.json"),
+        )
+        if not (root / relative).is_file()
+    ]
 
     if not missing:
-        return True, "plugin manifests found"
+        return True, f"plugin manifests found ({root})"
 
     return False, (
         f"missing plugin manifests: {', '.join(missing)}\n"
@@ -108,9 +236,9 @@ def check_plugin_manifests():
 CHECKS = [
     ("Python", check_python),
     ("Playwright", check_playwright),
-    ("Chromium", check_chromium),
+    ("Browsers", check_browsers),
     ("Screenshot", check_screenshot),
-    ("OpenAI Key", check_openai_key),
+    ("Model Backend", check_model_backend),
     ("Plugins", check_plugin_manifests),
 ]
 
