@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 from webwright.models.base import (
@@ -10,7 +9,6 @@ from webwright.models.base import (
     BaseModelConfig,
     OptStr,
     _safe_int,
-    image_part_from_path,
     text_part,
 )
 
