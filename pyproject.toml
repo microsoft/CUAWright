@@ -19,6 +19,9 @@ dependencies = [
     "platformdirs>=4.0",
 ]
 
+[project.optional-dependencies]
+litellm = ["litellm>=1.80.0,<1.87.0"]
+
 [project.scripts]
 webwright = "webwright.run.cli:app"
 
