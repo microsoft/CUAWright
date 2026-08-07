@@ -6,6 +6,7 @@ import json
 import mimetypes
 import os
 import subprocess
+import sys
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -121,6 +122,8 @@ def parse_json_output(raw: str, *, action_field: str = "bash_command") -> dict[s
 
 
 def _validate_bash_command(command: str) -> None:
+    if sys.platform == "win32":
+        return
     result = subprocess.run(
         ["/bin/bash", "-n"],
         input=command,
