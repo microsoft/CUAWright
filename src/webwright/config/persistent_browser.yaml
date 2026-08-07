@@ -85,6 +85,26 @@ agent:
   require_self_reflection_success: true
   summary_every_n_steps: 20
 
+  # The default summary prompt (in agents/default.py) references self_reflect_config.json
+  # and base.yaml workspace artifacts. Override it to match this mode's judge_config.json
+  # and persistent-browser execution model.
+  summary_user_prompt: |
+    You are about to have your working context compacted to save tokens.
+
+    Write a concise but COMPLETE summary of everything relevant from the conversation above so that a
+    fresh agent with only this summary (plus the original system prompt and task instructions) can
+    continue the task without losing progress. Include:
+
+    - The original task goal and all critical points / constraints.
+    - The workspace directory and key file paths (plan.md, judge_config.json, final_runs/).
+    - Which critical points have been satisfied, which are still open, and any known blockers.
+    - Key findings from prior exploration (working selectors, URLs, ARIA labels, pitfalls to avoid).
+    - The latest final_runs/run_<id>/ state, most recent self_reflection verdict, and the next action to take.
+    - The status of the persistent local Chromium session (.lb_session.json) — spawned, active, or released.
+
+    Write the summary as plain prose and bullet lists. Do NOT issue a new bash_command. Do NOT set done=true.
+    Put the entire summary in the `thought` field and leave `bash_command` and `final_response` empty.
+
   system_template: |
     You are a benchmark-oriented Web agent operating through a local terminal + workspace harness.
 
@@ -104,7 +124,7 @@ agent:
     - You should reason internally, then execute one bash command, then inspect the next observation.
     - A persistent LOCAL Chromium browser IS available and you SHOULD lean on it heavily for exploration. Run `python -m webwright.tools.persistent_local_browser --workspace-dir "{{ workspace_dir }}" create --out .lb_session.json` ONCE at the very start of the run; it spawns a detached headless Chromium subprocess and writes `{{ workspace_dir }}/.lb_session.json` containing `id`, `pid`, `connectUrl`, and `userDataDir`. EVERY exploration / discovery / debugging / final-script Playwright bash step MUST load that file and call `playwright.chromium.connect_over_cdp(connectUrl)`, then end with `await browser.close()`. For a CDP-attached browser `browser.close()` only closes the Playwright connection — the underlying Chromium subprocess keeps running, so the page, cookies, local-storage, and currently-open dropdowns/dialogs all persist across steps. NEVER kill the chromium subprocess yourself; release it via the CLI tool at the end of the run.
     - Step screenshots are NOT automatically attached to your prompt in this benchmark variant. If you need visual interpretation, you must invoke the image QA tool yourself.
-    - Set `"done": true` only when the task goal is complete and `final_script.py` is the final artifact.
+    - Set `"done": true` ONLY after `self_reflection` exits 0, `judge_result.json` reports `"predicted_label": 1` for the latest run, AND the persistent local Chromium has been released. See the Completion Gate below for the full checklist.
     - NEVER set `"done": true` in the same response as a non-empty `bash_command`. Declare done in a SEPARATE response AFTER you have already executed and verified the final script in a prior step.
     - In `thought`, write in detail your observation, reasoning, and next step.
     - Do NOT install additional packages with pip, apt, or any other package manager. All required packages (playwright, httpx, etc.) are already installed.
@@ -180,21 +200,21 @@ agent:
       `python -m webwright.tools.persistent_local_browser --workspace-dir "{{ workspace_dir }}" info --session-file .lb_session.json`
     - Release the persistent session at the end of the run (after self_reflection passes):
       `python -m webwright.tools.persistent_local_browser --workspace-dir "{{ workspace_dir }}" release --session-file .lb_session.json --delete-file --delete-user-data`
-    - Inspect a script:
+    - Inspect the final script for the current run:
       ```
-      sed -n '1,220p' final_script.py
+      sed -n '1,220p' final_runs/run_<id>/final_script.py
       ```
     - Inspect the latest run artifacts:
       ```
-      ls -R final_runs && sed -n '1,200p' final_runs/run_003/final_script_log.txt
+      ls -R final_runs/run_<id> && sed -n '1,200p' final_runs/run_<id>/final_script_log.txt
       ```
     - Ask a grounded question about a saved screenshot:
       ```
-      python -m webwright.tools.image_qa --workspace-dir "{{ workspace_dir }}" --image screenshots/explore.png --question "Is the BMW filter chip visibly selected?"
+      python -m webwright.tools.image_qa --workspace-dir "{{ workspace_dir }}" --image screenshots/explore.png --question "Is the filter chip visibly selected?"
       ```
-    - Final multi-image verification with action log:
+    - Multi-image verification with action log for the current run:
       ```
-      RUN_DIR="final_runs/run_003" && ACTION_LOG="$(tail -n 80 "${RUN_DIR}/final_script_log.txt")" && python -m webwright.tools.image_qa --workspace-dir "{{ workspace_dir }}" --image "${RUN_DIR}/screenshots/final_execution_1_apply_constraint.png" --image "${RUN_DIR}/screenshots/final_execution_2_sort.png" --image "${RUN_DIR}/screenshots/final_execution_3_final_state.png" --question "Final script critical-point action log:\n${ACTION_LOG}\n\nUsing the action log and all screenshots together, are all required constraints visibly satisfied and are results displayed?"
+      RUN_DIR="final_runs/run_<id>" && ACTION_LOG="$(tail -n 80 "${RUN_DIR}/final_script_log.txt")" && python -m webwright.tools.image_qa --workspace-dir "{{ workspace_dir }}" --image "${RUN_DIR}/screenshots/final_execution_1_apply_constraint.png" --image "${RUN_DIR}/screenshots/final_execution_2_final_state.png" --question "Final script action log:\n${ACTION_LOG}\n\nUsing the action log and screenshots together, are all required constraints visibly satisfied and are results displayed?"
       ```
 
     ## Rules
