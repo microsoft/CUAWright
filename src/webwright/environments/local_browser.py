@@ -12,7 +12,7 @@ import time
 import traceback
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 from urllib.parse import quote, urlparse
 from urllib.request import ProxyHandler, Request, build_opener
 
@@ -220,6 +220,7 @@ class LocalBrowserEnvironment:
         self._local_cdp_process: subprocess.Popen | None = None
         self._connected_over_cdp = False
         self._step_index = 0
+        self._page_cleanup: list[Callable[[], None]] = []
         self._prepared_task: dict[str, Any] = {}
         self._console_history: list[str] = []
         self._step_console: list[str] = []
@@ -368,8 +369,24 @@ class LocalBrowserEnvironment:
             await self._page.goto(self.config.start_url, wait_until="domcontentloaded")
 
     def _attach_page_listeners(self, page: Any) -> None:
-        page.on("console", self._on_console_message)
-        page.on("pageerror", self._on_page_error)
+        def on_console(msg: Any) -> None:
+            self._on_console_message(msg)
+        def on_page_error(err: Any) -> None:
+            self._on_page_error(err)
+        page.on("console", on_console)
+        page.on("pageerror", on_page_error)
+        self._page_cleanup = [
+            lambda: page.remove_listener("console", on_console),
+            lambda: page.remove_listener("pageerror", on_page_error),
+        ]
+
+    def _detach_page_listeners(self) -> None:
+        for cleanup in self._page_cleanup:
+            try:
+                cleanup()
+            except Exception:
+                pass
+        self._page_cleanup = []
 
     def _on_console_message(self, message: Any) -> None:
         text = getattr(message, "text", "")
@@ -531,6 +548,7 @@ class LocalBrowserEnvironment:
             self._loop = None
 
     async def _close_async(self) -> None:
+        self._detach_page_listeners()
 
         context = self._context
         browser = self._browser
