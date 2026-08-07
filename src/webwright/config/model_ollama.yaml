@@ -1,0 +1,13 @@
+# Ollama model configuration.
+#
+# Stack on top of base.yaml:
+#   python -m webwright.run.cli -c base.yaml -c model_ollama.yaml ...
+#
+# Connects to a local or cloud-hosted Ollama instance via /v1/chat/completions.
+# Set OLLAMA_API_KEY env var for cloud-hosted endpoints that require authentication.
+# Override model_name via OLLAMA_MODEL env var or edit inline.
+
+model:
+  model_class: ollama
+  model_name: llama3.2
+  ollama_endpoint: http://localhost:11434/v1/chat/completions

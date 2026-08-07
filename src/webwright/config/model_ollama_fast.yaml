@@ -1,0 +1,11 @@
+# Ollama fast preset — no reasoning, maximum speed.
+#
+# Stack on top of base.yaml:
+#   python -m webwright.run.cli -c base.yaml -c model_ollama_fast.yaml ...
+
+model:
+  model_class: ollama
+  model_name: llama3.2
+  ollama_endpoint: http://localhost:11434/v1/chat/completions
+  ollama_extra_body:
+    reasoning_effort: none

@@ -1,0 +1,8 @@
+# Ollama reasoning preset — highest quality, slower iteration.
+
+model:
+  model_class: ollama
+  model_name: llama3.2
+  ollama_endpoint: http://localhost:11434/v1/chat/completions
+  ollama_extra_body:
+    reasoning_effort: high
