@@ -12,9 +12,10 @@ import time
 import traceback
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 from urllib.parse import quote, urlparse
-from urllib.request import ProxyHandler, Request, build_opener
+
+import httpx
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -32,11 +33,6 @@ _CHROMIUM_EXECUTABLE_CANDIDATES = (
     "chromium",
     "chrome",
 )
-_LOCAL_CDP_OPENER = build_opener(ProxyHandler({}))
-
-
-def _urlopen_local_cdp(url_or_request: str | Request, *, timeout: float):
-    return _LOCAL_CDP_OPENER.open(url_or_request, timeout=timeout)
 
 
 def _local_cdp_origin(cdp_url: str) -> str:
@@ -55,30 +51,32 @@ def _local_cdp_port(cdp_url: str) -> int:
     return 443 if parsed.scheme == "https" else 80
 
 
-def _is_local_cdp_available(cdp_url: str, *, timeout_seconds: float = 0.5) -> bool:
-    try:
-        with _urlopen_local_cdp(
-            f"{_local_cdp_origin(cdp_url).rstrip('/')}/json/version",
-            timeout=timeout_seconds,
-        ) as response:
-            return 200 <= response.status < 300
-    except Exception:
-        return False
-
-
 def _local_cdp_json_url(cdp_url: str, path: str) -> str:
     return f"{_local_cdp_origin(cdp_url).rstrip('/')}{path}"
 
 
-def _local_cdp_page_targets(cdp_url: str, *, timeout_seconds: float = 0.5) -> list[dict[str, Any]]:
+async def _async_is_local_cdp_available(cdp_url: str, *, timeout_seconds: float = 0.5) -> bool:
     try:
-        with _urlopen_local_cdp(
-            _local_cdp_json_url(cdp_url, "/json/list"),
-            timeout=timeout_seconds,
-        ) as response:
-            if not 200 <= response.status < 300:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{_local_cdp_origin(cdp_url).rstrip('/')}/json/version",
+                timeout=timeout_seconds,
+            )
+            return 200 <= response.status_code < 300
+    except Exception:
+        return False
+
+
+async def _async_local_cdp_page_targets(cdp_url: str, *, timeout_seconds: float = 0.5) -> list[dict[str, Any]]:
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                _local_cdp_json_url(cdp_url, "/json/list"),
+                timeout=timeout_seconds,
+            )
+            if not 200 <= response.status_code < 300:
                 return []
-            payload = json.loads(response.read().decode("utf-8"))
+            payload = response.json()
     except Exception:
         return []
     if not isinstance(payload, list):
@@ -90,14 +88,13 @@ def _local_cdp_page_targets(cdp_url: str, *, timeout_seconds: float = 0.5) -> li
     ]
 
 
-def _ensure_local_cdp_page_target(cdp_url: str, *, timeout_seconds: float = 1.0) -> None:
-    if _local_cdp_page_targets(cdp_url, timeout_seconds=timeout_seconds):
+async def _async_ensure_local_cdp_page_target(cdp_url: str, *, timeout_seconds: float = 1.0) -> None:
+    if await _async_local_cdp_page_targets(cdp_url, timeout_seconds=timeout_seconds):
         return
-
     target_url = f"{_local_cdp_json_url(cdp_url, '/json/new')}?{quote('about:blank', safe='')}"
-    request = Request(target_url, method="PUT")
-    with _urlopen_local_cdp(request, timeout=timeout_seconds) as response:
-        if not 200 <= response.status < 300:
+    async with httpx.AsyncClient() as client:
+        response = await client.put(target_url, timeout=timeout_seconds)
+        if not 200 <= response.status_code < 300:
             raise RuntimeError(f"Could not create a local CDP page target: {cdp_url}")
 
 
@@ -259,8 +256,8 @@ class LocalBrowserEnvironment:
         loop = self._ensure_loop()
         return loop.run_until_complete(coro)
 
-    def _ensure_local_cdp_browser(self) -> None:
-        if _is_local_cdp_available(self.config.local_cdp_url):
+    async def _ensure_local_cdp_browser(self) -> None:
+        if await _async_is_local_cdp_available(self.config.local_cdp_url):
             return
         if not self.config.local_cdp_auto_start:
             raise RuntimeError(
@@ -299,9 +296,9 @@ class LocalBrowserEnvironment:
                 raise RuntimeError(
                     f"Chrome/Chromium exited before CDP became available: {self.config.local_cdp_url}"
                 )
-            if _is_local_cdp_available(self.config.local_cdp_url):
+            if await _async_is_local_cdp_available(self.config.local_cdp_url):
                 return
-            time.sleep(0.2)
+            await asyncio.sleep(0.2)
 
         self._local_cdp_process.terminate()
         self._local_cdp_process = None
@@ -325,8 +322,8 @@ class LocalBrowserEnvironment:
         }
 
         if self.config.browser_mode == "local_cdp":
-            self._ensure_local_cdp_browser()
-            _ensure_local_cdp_page_target(self.config.local_cdp_url)
+            await self._ensure_local_cdp_browser()
+            await _async_ensure_local_cdp_page_target(self.config.local_cdp_url)
             self._browser = await chromium.connect_over_cdp(self.config.local_cdp_url)
             self._connected_over_cdp = True
             self._context = (
