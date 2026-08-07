@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from webwright.run.doctor import (
-    check_chromium,
+    check_firefox,
     check_openai_key,
     check_playwright,
     check_plugin_manifests,
@@ -24,8 +24,8 @@ def test_check_playwright():
     assert isinstance(message, str)
 
 
-def test_check_chromium():
-    ok, message = check_chromium()
+def test_check_firefox():
+    ok, message = check_firefox()
 
     assert isinstance(ok, bool)
     assert isinstance(message, str)

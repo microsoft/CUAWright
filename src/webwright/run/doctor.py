@@ -27,7 +27,7 @@ def check_playwright():
     return False, ("playwright not installed\nFix: pip install playwright")
 
 
-def check_chromium():
+def check_firefox():
     try:
         result = subprocess.run(
             ["playwright", "install", "--dry-run"],
@@ -36,9 +36,9 @@ def check_chromium():
         )
 
         if result.returncode == 0:
-            return True, "chromium available"
+            return True, "firefox available"
 
-        return False, ("chromium missing\nFix: playwright install chromium")
+        return False, ("firefox missing\nFix: playwright install firefox")
 
     except Exception as e:
         return False, str(e)
@@ -51,7 +51,7 @@ def check_screenshot():
         screenshot_path = Path("doctor_test.png")
 
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            browser = p.firefox.launch(headless=True)
 
             page = browser.new_page()
 
@@ -70,8 +70,8 @@ def check_screenshot():
 
     except Exception:
         return False, (
-            "unable to launch Chromium for screenshot validation\n"
-            "Fix: playwright install"
+            "unable to launch Firefox for screenshot validation\n"
+            "Fix: playwright install firefox"
         )
 
 
@@ -108,7 +108,7 @@ def check_plugin_manifests():
 CHECKS = [
     ("Python", check_python),
     ("Playwright", check_playwright),
-    ("Chromium", check_chromium),
+    ("Firefox", check_firefox),
     ("Screenshot", check_screenshot),
     ("OpenAI Key", check_openai_key),
     ("Plugins", check_plugin_manifests),
