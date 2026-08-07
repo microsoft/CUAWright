@@ -75,12 +75,13 @@ def check_screenshot():
         )
 
 
-def check_openai_key():
-    if os.getenv("OPENAI_API_KEY"):
-        return True, "OPENAI_API_KEY found"
-
+def check_api_key():
+    for var in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "OPENROUTER_API_KEY"):
+        if os.getenv(var):
+            return True, f"{var} found"
     return False, (
-        "OPENAI_API_KEY missing\nFix: set the OPENAI_API_KEY environment variable"
+        "No API key found\n"
+        "Fix: set OPENAI_API_KEY, ANTHROPIC_API_KEY, or OPENROUTER_API_KEY"
     )
 
 
@@ -110,7 +111,7 @@ CHECKS = [
     ("Playwright", check_playwright),
     ("Chromium", check_chromium),
     ("Screenshot", check_screenshot),
-    ("OpenAI Key", check_openai_key),
+    ("API Key", check_api_key),
     ("Plugins", check_plugin_manifests),
 ]
 

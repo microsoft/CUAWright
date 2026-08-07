@@ -1,8 +1,8 @@
 from pathlib import Path
 
 from webwright.run.doctor import (
+    check_api_key,
     check_chromium,
-    check_openai_key,
     check_playwright,
     check_plugin_manifests,
     check_python,
@@ -38,22 +38,51 @@ def test_check_screenshot():
     assert isinstance(message, str)
 
 
-def test_check_openai_key_exists(monkeypatch):
+def test_check_api_key_openai(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
 
-    ok, message = check_openai_key()
+    ok, message = check_api_key()
 
     assert ok is True
+    assert "OPENAI_API_KEY" in message
     assert "found" in message
 
 
-def test_check_openai_key_missing(monkeypatch):
+def test_check_api_key_anthropic(monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
 
-    ok, message = check_openai_key()
+    ok, message = check_api_key()
+
+    assert ok is True
+    assert "ANTHROPIC_API_KEY" in message
+    assert "found" in message
+
+
+def test_check_api_key_openrouter(monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+
+    ok, message = check_api_key()
+
+    assert ok is True
+    assert "OPENROUTER_API_KEY" in message
+    assert "found" in message
+
+
+def test_check_api_key_missing(monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+
+    ok, message = check_api_key()
 
     assert ok is False
-    assert "missing" in message
+    assert "No API key found" in message
 
 
 def test_plugin_manifests_exist(tmp_path, monkeypatch):
