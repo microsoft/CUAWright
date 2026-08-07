@@ -225,13 +225,14 @@ python -m webwright.run.cli \
 
 ### 🚩 Flags
 
-| Flag | Description |
-|------|-------------|
+| Flag / Command | Description |
+|----------------|-------------|
 | `-c` | Config file(s) from `src/webwright/config/` (stackable). |
 | `-t` | Task instruction. |
 | `--start-url` | Initial page. |
 | `--task-id` | Output subfolder name. |
 | `-o` | Output directory. |
+| `list-configs` | Print all available built-in config file names (`python -m webwright.run.cli list-configs`). |
 
 ---
 
