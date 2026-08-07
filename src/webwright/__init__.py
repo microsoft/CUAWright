@@ -22,7 +22,7 @@ __version__ = "0.1.0"
 
 package_dir = Path(__file__).resolve().parent
 global_config_dir = Path(
-    os.getenv("MSWEBA_GLOBAL_CONFIG_DIR") or user_config_dir("webwright")
+    os.getenv("WEBWRIGHT_CONFIG_DIR") or user_config_dir("webwright")
 )
 global_config_dir.mkdir(parents=True, exist_ok=True)
 global_config_file = global_config_dir / ".env"
