@@ -17,12 +17,14 @@ class LocalWorkspaceEnvironmentConfig(BaseModel):
     """Shell-based workspace environment.
 
     The agent drives a real browser through bash commands it generates inside this
-    workspace. Two browser modes are exposed to those generated scripts via
+    workspace. Three browser modes are exposed to those generated scripts via
     environment variables:
 
     * ``browser_mode = "browserbase"`` (default): the agent's scripts should
       create a Browserbase cloud session. ``BROWSERBASE_API_KEY`` and
       ``BROWSERBASE_PROJECT_ID`` are forwarded if present.
+    * ``browser_mode = "steel"``: the agent's scripts should create a Steel cloud
+      session. ``STEEL_API_KEY`` is forwarded if present.
     * ``browser_mode = "local"``: the agent's scripts should launch a local
       Playwright browser (``playwright.chromium.launch(...)``).
 
@@ -36,7 +38,7 @@ class LocalWorkspaceEnvironmentConfig(BaseModel):
     shell: str = "/bin/bash"
     env: dict[str, str] = Field(default_factory=dict)
     credentials_file: Path | None = None
-    browser_mode: str = "browserbase"  # "browserbase" or "local"
+    browser_mode: str = "browserbase"  # "browserbase", "steel", or "local"
     task_metadata_filename: str = "task.json"
     final_script_name: str = "final_script.py"
     output_truncation_chars: int = 12000
@@ -165,9 +167,9 @@ class LocalWorkspaceEnvironment:
         self._task_metadata_path().write_text(json.dumps(kwargs, indent=2), encoding="utf-8")
 
     def _browser_env(self) -> dict[str, str]:
-        """Forward Browserbase / browser-mode hints to the subprocess."""
+        """Forward cloud-browser / browser-mode hints to the subprocess."""
         env: dict[str, str] = {"BROWSER_MODE": str(self.config.browser_mode or "browserbase")}
-        for var in ("BROWSERBASE_API_KEY", "BROWSERBASE_PROJECT_ID"):
+        for var in ("BROWSERBASE_API_KEY", "BROWSERBASE_PROJECT_ID", "STEEL_API_KEY"):
             value = self._credential_env.get(var) or os.environ.get(var)
             if value:
                 env[var] = value

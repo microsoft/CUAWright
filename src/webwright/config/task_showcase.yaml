@@ -53,11 +53,12 @@ environment:
   command_timeout_seconds: 240
   shell: /bin/bash
   # Path to a shell file that exports credentials (BROWSERBASE_API_KEY,
-  # BROWSERBASE_PROJECT_ID, ANTHROPIC_API_KEY, OPENAI_API_KEY, ...). Leave
-  # empty to read these from the parent process environment instead.
+  # BROWSERBASE_PROJECT_ID, STEEL_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY,
+  # ...). Leave empty to read these from the parent process environment instead.
   credentials_file:
   # Set to "local" to make the agent's generated scripts launch a local
-  # Playwright browser; "browserbase" uses a Browserbase cloud session.
+  # Playwright browser; "browserbase" uses a Browserbase cloud session and
+  # "steel" uses a Steel cloud session.
   browser_mode: local
   task_metadata_filename: task.json
   final_script_name: final_script.py
@@ -111,9 +112,12 @@ agent:
 
     ## Browser Mode
 
-    The harness exposes `BROWSER_MODE` to your scripts (value: `browserbase` or `local`).
+    The harness exposes `BROWSER_MODE` to your scripts (value: `browserbase`, `steel`, or `local`).
     - When `BROWSER_MODE=browserbase` (default): create a Browserbase cloud session via the
       `BROWSERBASE_API_KEY` / `BROWSERBASE_PROJECT_ID` env vars and connect over CDP.
+    - When `BROWSER_MODE=steel`: create a Steel cloud session via POST
+      https://api.steel.dev/v1/sessions (header `Steel-Api-Key: $STEEL_API_KEY`), then
+      connect over CDP to `wss://connect.steel.dev?apiKey=$STEEL_API_KEY&sessionId=<id>`.
     - When `BROWSER_MODE=local`: launch a local Playwright Chromium browser
       (`playwright.chromium.launch(...)`) instead. No external credentials required.
 
@@ -435,7 +439,7 @@ agent:
       - `{{ workspace_dir }}/task_showcase/tasks/<short_id>/task.json`
       - `{{ workspace_dir }}/task_showcase/tasks/<short_id>/report.json`
     - Use `{{ task_id }}` as the preferred `<short_id>` when it is present and already URL-safe; otherwise derive a lowercase slug from the task title.
-    - The browser mode is `{{ browser_mode }}`. Match generated scripts to that mode (Browserbase cloud session vs. local Playwright launch).
+    - The browser mode is `{{ browser_mode }}`. Match generated scripts to that mode (Browserbase or Steel cloud session vs. local Playwright launch).
 
     ## Web Task Rules
 
