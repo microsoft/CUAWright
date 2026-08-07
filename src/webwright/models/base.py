@@ -296,11 +296,11 @@ class BaseModel:
         for k, v in self._last_request_metrics.items():
             vars[f"last_request_{k}"] = v
         for k, v in self._last_usage_metrics.items():
-            vars[f"last_request_{k}"] = v
+            vars[f"last_usage_{k}"] = v
         for k, v in self._cumulative_request_metrics.items():
             vars[f"cumulative_request_{k}"] = v
         for k, v in self._cumulative_usage_metrics.items():
-            vars[f"cumulative_{k}"] = v
+            vars[f"cumulative_usage_{k}"] = v
         vars.update(kwargs)
         return vars
 
