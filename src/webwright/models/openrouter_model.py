@@ -113,6 +113,7 @@ def _usage_metrics_from_chat_completions(payload: dict[str, Any]) -> dict[str, i
         "output_tokens": _safe_int(usage.get("completion_tokens")),
         "total_tokens": _safe_int(usage.get("total_tokens")),
         "cached_input_tokens": 0,
+        "cache_creation_input_tokens": 0,
         "reasoning_output_tokens": 0,
     }
 

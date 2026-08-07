@@ -197,6 +197,7 @@ _USAGE_METRIC_KEYS = (
     "output_tokens",
     "total_tokens",
     "cached_input_tokens",
+    "cache_creation_input_tokens",
     "reasoning_output_tokens",
 )
 
@@ -326,6 +327,7 @@ class BaseModel:
                 "image_part_count": self._last_request_metrics["image_part_count"],
                 "input_tokens": self._last_usage_metrics["input_tokens"],
                 "cached_input_tokens": self._last_usage_metrics["cached_input_tokens"],
+                "cache_creation_input_tokens": self._last_usage_metrics["cache_creation_input_tokens"],
             },
             "last_response": dict(self._last_usage_metrics),
             "cumulative_request": {
@@ -334,6 +336,7 @@ class BaseModel:
                 "image_part_count": self._cumulative_request_metrics["image_part_count"],
                 "input_tokens": self._cumulative_usage_metrics["input_tokens"],
                 "cached_input_tokens": self._cumulative_usage_metrics["cached_input_tokens"],
+                "cache_creation_input_tokens": self._cumulative_usage_metrics["cache_creation_input_tokens"],
             },
             "cumulative_response": dict(self._cumulative_usage_metrics),
         }

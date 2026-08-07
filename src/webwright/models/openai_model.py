@@ -98,6 +98,7 @@ def _usage_metrics_from_response_payload(payload: dict[str, Any]) -> dict[str, i
         "output_tokens": _safe_int(usage.get("output_tokens")),
         "total_tokens": _safe_int(usage.get("total_tokens")),
         "cached_input_tokens": _safe_int(input_details.get("cached_tokens")),
+        "cache_creation_input_tokens": 0,
         "reasoning_output_tokens": _safe_int(output_details.get("reasoning_tokens")),
     }
 

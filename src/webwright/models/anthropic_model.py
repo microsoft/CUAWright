@@ -101,11 +101,13 @@ def _usage_from_anthropic_payload(payload: dict[str, Any]) -> dict[str, int]:
     input_tokens = _safe_int(usage.get("input_tokens"))
     output_tokens = _safe_int(usage.get("output_tokens"))
     cached_input_tokens = _safe_int(usage.get("cache_read_input_tokens"))
+    cache_creation_input_tokens = _safe_int(usage.get("cache_creation_input_tokens"))
     return {
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
         "total_tokens": input_tokens + output_tokens,
         "cached_input_tokens": cached_input_tokens,
+        "cache_creation_input_tokens": cache_creation_input_tokens,
         "reasoning_output_tokens": 0,
     }
 
