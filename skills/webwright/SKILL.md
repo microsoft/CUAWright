@@ -34,11 +34,30 @@ own native abilities**: you read PNGs with `Read` and verify success against
 
 ## Prerequisites (one-time)
 
-From the Webwright repo root:
+Install the Playwright Firefox browser binary once before the first task.
+Use the `python -m` invocation so the same line works on Windows /
+Windows Store Python and inside virtualenvs where the standalone
+`playwright` console script is not necessarily on `PATH`:
 
 ```bash
-playwright install firefox
+python -m playwright install firefox
 ```
+
+**Preflight check (recommended before the first heredoc).** Playwright's
+`firefox.executable_path` resolves to a versioned path
+(`firefox-<rev>/...`) the moment `pip install playwright` runs, but the
+binary at that path doesn't actually exist until you run the install
+command above. Running a Playwright heredoc against the missing binary
+fails with `BrowserType.launch: Executable doesn't exist at <path>`.
+To detect the state deterministically:
+
+```bash
+python -c "import pathlib; from playwright.sync_api import sync_playwright; p=sync_playwright().start(); ok=pathlib.Path(p.firefox.executable_path).exists(); p.stop(); print('FIREFOX_READY' if ok else 'NEEDS_INSTALL')"
+```
+
+If the agent sees `NEEDS_INSTALL`, run `python -m playwright install firefox`
+before proceeding. The check is cheap (a few hundred ms) and the install
+itself is a one-time ~110 MB download.
 
 No API keys needed for this skill.
 
