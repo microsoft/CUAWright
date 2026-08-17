@@ -16,9 +16,16 @@ the first task.
 python - <<'PY'
 import asyncio
 import os
+import sys
 from pathlib import Path
 
 from playwright.async_api import async_playwright
+
+# Windows defaults sys.stdout.encoding to cp1252, which crashes the moment
+# aria_snapshot()/page text contains any non-cp1252 glyph (e.g. arxiv's
+# "▽ More" abstract toggle is U+25BD). Force utf-8 so the skeleton works
+# unchanged across platforms; no-op on POSIX where stdout is already utf-8.
+sys.stdout.reconfigure(encoding="utf-8")
 
 WORKSPACE = Path(os.environ.get("WORKSPACE_DIR", "."))
 SCREENSHOTS = WORKSPACE / "screenshots"
@@ -53,6 +60,12 @@ Rules:
   and final-run screenshots alike.
 - Each Playwright run is fresh: navigate from the start URL, reapply
   filters, reconstruct state in code. There is no persistent session.
+- **Windows note:** keep the `sys.stdout.reconfigure(encoding="utf-8")`
+  line at the top of every heredoc. Without it, the script crashes with
+  `UnicodeEncodeError: 'charmap' codec can't encode character ...` as
+  soon as the page emits a non-cp1252 glyph through `print()`. Setting
+  `PYTHONIOENCODING=utf-8` in the environment is an equivalent
+  alternative.
 
 ## Targeting elements with role + name
 
@@ -127,19 +140,26 @@ Guidelines for the interactive path:
 - print the final datum at the end of the log.
 
 ```python
-import asyncio, os
+import asyncio, os, sys
 from pathlib import Path
 from playwright.async_api import async_playwright
+
+# See the "Windows note" under the Browser launch skeleton above —
+# this line keeps the script working on Windows when log/print output
+# contains non-cp1252 glyphs (typography symbols, emoji, CJK, math).
+# No-op on POSIX where stdout is already utf-8.
+sys.stdout.reconfigure(encoding="utf-8")
 
 RUN_DIR = Path(__file__).parent
 SCREENSHOTS = RUN_DIR / "screenshots"
 SCREENSHOTS.mkdir(parents=True, exist_ok=True)
 LOG = RUN_DIR / "final_script_log.txt"
-LOG.write_text("")  # reset
+LOG.write_text("", encoding="utf-8")  # reset
 
 def log(step: int, msg: str) -> None:
     line = f"step {step} action: {msg}\n"
-    LOG.open("a").write(line)
+    with LOG.open("a", encoding="utf-8") as f:
+        f.write(line)
     print(line, end="")
 
 async def main():
