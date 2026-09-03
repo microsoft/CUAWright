@@ -21,6 +21,7 @@ import json
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 from .execute import run_skill
 from .gate import gate
@@ -61,7 +62,7 @@ def agent_cfg(cfg: list[str]) -> list[str]:
         # -c REPLACES the defaults; base.yaml carries the agent's system/instance templates, so
         # re-add it unless a base was named — otherwise `-c model.yaml` alone yields an agent with
         # no template (a cryptic pydantic ValidationError, not a helpful message).
-        if not any("base" in c for c in cfg):
+        if not any(Path(c).name == "base.yaml" for c in cfg):
             cfg = ["base.yaml", *cfg]
         return cfg
     over = [f"model.{key}={val}" for key, val in

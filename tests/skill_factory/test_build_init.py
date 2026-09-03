@@ -364,6 +364,14 @@ def test_bare_model_config_gets_base_prepended():
         ["base.yaml", "m.yaml", "model.max_output_tokens=16000"]
 
 
+def test_base_is_matched_on_the_filename_not_a_substring():
+    """`base` in `database.yaml` is not a base config. Prepend base.yaml so the agent
+    still gets system/instance templates."""
+    assert agent_cfg(["database.yaml"]) == ["base.yaml", "database.yaml"]
+    assert agent_cfg(["my_base_model.yaml"]) == ["base.yaml", "my_base_model.yaml"]
+    assert agent_cfg(["configs/base.yaml", "mine.yaml"]) == ["configs/base.yaml", "mine.yaml"]
+
+
 def test_the_env_path_carries_a_usable_output_budget(monkeypatch):
     """The env path stands in for a model yaml, which set max_output_tokens: 16000. base.yaml's
     4000 truncates the agent mid-script when it reuses a big skill, and the run loops re-emitting
