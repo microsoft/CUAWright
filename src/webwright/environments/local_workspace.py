@@ -3,11 +3,14 @@ from __future__ import annotations
 import json
 import os
 import re
+import shlex
 import subprocess
 from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, Field
+
+from webwright.tools.image_read import image_read_descriptor
 
 _EXPORT_RE = re.compile(r"^export\s+([A-Za-z_][A-Za-z0-9_]*)=(.*)$")
 _IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
@@ -90,6 +93,37 @@ class LocalWorkspaceEnvironment:
         except ValueError as exc:
             raise ValueError(f"Command cwd must stay inside workspace: {resolved}") from exc
         return resolved
+
+    @staticmethod
+    def _image_read_path(command: str) -> str | None:
+        try:
+            argv = shlex.split(command, comments=False, posix=True)
+        except ValueError:
+            return None
+        if len(argv) != 5 or argv[:4] != ["python", "-m", "webwright.tools.image_read", "--path"]:
+            return None
+        return argv[4]
+
+    def _validated_image_read_result(
+        self,
+        *,
+        requested_path: str | None,
+        output: str,
+        returncode: int,
+    ) -> dict[str, Any] | None:
+        if requested_path is None or returncode != 0:
+            return None
+        try:
+            emitted = json.loads(output)
+        except json.JSONDecodeError as exc:
+            raise ValueError("image_read returned malformed JSON") from exc
+        expected = image_read_descriptor(
+            requested_path,
+            workspace_dir=self._workspace_dir(),
+        )
+        if emitted != expected:
+            raise ValueError("image_read descriptor did not match the requested image")
+        return expected
 
     def _task_metadata_path(self) -> Path:
         return self._workspace_dir() / self.config.task_metadata_filename
@@ -180,6 +214,7 @@ class LocalWorkspaceEnvironment:
         ).strip()
         self._persist_step_command(command)
         resolved_cwd = self._resolve_cwd(cwd)
+        requested_image_path = self._image_read_path(command)
 
         command_env = os.environ | self._credential_env | self._browser_env() | self.config.env | {
             "WORKSPACE_DIR": str(self._workspace_dir()),
@@ -211,6 +246,18 @@ class LocalWorkspaceEnvironment:
             returncode = -1
             exception_info = f"An error occurred while executing the command: {exc}"
 
+        image_attachment = None
+        try:
+            image_attachment = self._validated_image_read_result(
+                requested_path=requested_image_path,
+                output=output,
+                returncode=returncode,
+            )
+        except (OSError, ValueError) as exc:
+            returncode = 1
+            rejection = f"image_read attachment rejected: {exc}"
+            output = f"{output.rstrip()}\n{rejection}\n" if output else rejection + "\n"
+
         log_path = self._write_step_log(output)
         observation = self._capture_observation(
             command=command,
@@ -219,6 +266,7 @@ class LocalWorkspaceEnvironment:
             returncode=returncode,
             exception_info=exception_info,
             log_path=log_path,
+            image_attachment=image_attachment,
         )
         return {
             "output": output,
@@ -236,6 +284,7 @@ class LocalWorkspaceEnvironment:
         returncode: int,
         exception_info: str,
         log_path: Path | None,
+        image_attachment: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         final_script_path = self._final_script_path()
         recent_screenshot_paths = self._recent_screenshots()
@@ -250,6 +299,7 @@ class LocalWorkspaceEnvironment:
         workspace_dir = self._workspace_dir()
         recent_screenshots = [str(path.relative_to(workspace_dir)) for path in recent_screenshot_paths[:10]]
         return {
+            "image_attachments": [image_attachment] if image_attachment else [],
             "success": returncode == 0 and not exception_info,
             "exception": exception_info,
             "command": command,

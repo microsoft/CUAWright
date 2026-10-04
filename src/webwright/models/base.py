@@ -140,12 +140,12 @@ def text_part(text: str) -> dict[str, Any]:
     return {"type": "input_text", "text": text}
 
 
-def image_part_from_path(path: Path) -> dict[str, Any]:
+def image_part_from_path(path: Path, *, media_type: str | None = None) -> dict[str, Any]:
     mime_type, _ = mimetypes.guess_type(str(path))
     encoded = base64.b64encode(path.read_bytes()).decode("ascii")
     return {
         "type": "input_image",
-        "image_url": f"data:{mime_type or 'image/png'};base64,{encoded}",
+        "image_url": f"data:{media_type or mime_type or 'image/png'};base64,{encoded}",
         "detail": "high",
     }
 
@@ -402,9 +402,27 @@ class BaseModel:
             )
 
             parts: list[dict[str, Any]] = [text_part(content)]
+            attached_paths: set[Path] = set()
+            for attachment in observation.get("image_attachments") or []:
+                if not isinstance(attachment, dict):
+                    continue
+                path_value = attachment.get("path")
+                media_type = attachment.get("media_type")
+                if not isinstance(path_value, str) or not path_value:
+                    continue
+                path = Path(path_value)
+                parts.append(
+                    image_part_from_path(
+                        path,
+                        media_type=media_type if isinstance(media_type, str) else None,
+                    )
+                )
+                attached_paths.add(path.resolve())
             screenshot_path = observation.get("screenshot_path")
             if self.config.attach_observation_screenshot and screenshot_path:
-                parts.append(image_part_from_path(Path(screenshot_path)))
+                path = Path(screenshot_path)
+                if path.resolve() not in attached_paths:
+                    parts.append(image_part_from_path(path))
 
             observation_messages.append(
                 self.format_message(role="user", content=parts, extra={"observation": observation})

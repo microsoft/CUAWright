@@ -18,12 +18,28 @@
 
 Webwright gives LLM a terminal where it can launch multiple browser sessions to inspect the page and complete a web task. It captures and inspects page screenshots/states only when needed. It enforces each web task to be completed end-to-end within a re-runnable Python script, i.e. your web agent browsing history is a single code file. No multi-agent system, no graph engine, no plugin layer, no hidden orchestration — just a terminal, a browser, and a model.
 
+For incremental browsing with native OpenAI `run_command` tool calls, use:
+
+```bash
+webwright -c best_default_judge_json_persistent_cli.yaml -c model_openai.yaml \
+  -t "<task>" --start-url "<url>" --task-id example -o outputs/example
+```
+
+This config keeps a Browserbase cloud session across commands (requires
+`BROWSERBASE_API_KEY` and `BROWSERBASE_PROJECT_ID`), attaches saved images
+through `python -m webwright.tools.image_read --path /absolute/workspace/image.png`,
+and uses `self_reflection --scope trajectory` to judge all task screenshots.
+Each turn is one shell tool call or a plain text completion answer. Reasoning and
+tool results are replayed across turns; history compaction disables tool execution.
+Existing script-based configs remain available. Self-reflection rejects incomplete
+image judgments and retries malformed final verdicts.
+
 Already got your favorite agents, and wonder how to make Claude Code, Codex, Hermes, OpenClaw more capable in browser tasks? Consider adding [Webwright plugin/skills](#-use-as-a-claude-code-skill)!
 
 ---
 
 ## 📰 News
-
+- **2026-09-01** — We did several optmization (add persistent step by step solve mode, remove explict output thinking block, and use run_command tool call etc) further boost performance: OM2W -> 88.1% and Odssey --> 77.5%
 - **2026-07-21** — Skill Factory: every solve leaves a script behind, distilled into reusable, verified, parameterized code skills that rerun standalone with no model (~40 s, zero tokens). On WebArena, reuse lifts held-out accuracy 55% → 70% (+15 pp). See [Skill Factory](#-skill-factory-turn-solved-tasks-into-runnable-code-skills).
 - **2026-05-11** — Support Task2UI mode: Webwright completes the task and renders task results into an HTML-based web app you can easily view and reuse.  
 - **2026-05-06** — Codex and Claude Code plugin manifests added; install via `/plugin install webwright@webwright`. OpenClaw and Hermes Agent integrations shipped; the same `skills/webwright/` folder now loads across Claude Code, Codex, OpenClaw, and Hermes.

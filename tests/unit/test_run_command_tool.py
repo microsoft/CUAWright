@@ -257,6 +257,21 @@ def test_tool_query_execute_observe_and_complete(monkeypatch, tmp_path):
     assert final['content'] == 'Final Response: hello'
 
 
+def test_new_config_renders_and_uses_browserbase(monkeypatch):
+    from webwright.config import get_config_from_spec
+    from webwright.utils.serialize import recursive_merge
+    from jinja2 import Template, StrictUndefined
+    for name, mode in [('best_default_judge_json_persistent_cli.yaml', 'run_command_tool')]:
+        config = recursive_merge(get_config_from_spec(name), get_config_from_spec('model_openai.yaml'))
+        model = OpenAIModel(openai_api_key='key', **{k: v for k, v in config['model'].items() if k != 'model_class'})
+        assert model.config.response_mode == mode
+        assert config['environment']['browser_mode'] == 'browserbase'
+        assert config['agent']['trajectory_reflection_config'] == 'judge_config.json'
+        prompt = Template(config['agent']['system_template'], undefined=StrictUndefined).render(workspace_dir='/tmp/task', start_url='https://example.test')
+        assert 'webwright.tools.image_read' in prompt
+        assert '--scope trajectory' in prompt
+        assert '/home/luyadong' not in prompt
+
 
 @pytest.mark.parametrize("mode", [TOOL_RESPONSE_MODE, "json_schema"])
 def test_base_prompt_matches_response_mode(mode):

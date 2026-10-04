@@ -50,6 +50,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from webwright.utils.browser_evidence import (task_screenshot_paths, load_browser_steps,
+    format_action_history, trajectory_evidence_digest, optional_file_digest, trajectory_images)
 from webwright.models.base import text_part
 from webwright.tools._model_config import load_tool_model
 
@@ -250,6 +252,8 @@ def _model_endpoint(model_client: Any) -> str:
 # ---------------------------------------------------------------------------
 
 def _parse_image_judge_response(response: str) -> tuple[str, int]:
+    if not isinstance(response, str):
+        raise ValueError("Image judge response must be text")
     score_match = re.search(r"(?is)\bscore\b[^1-5]*([1-5])\b", response)
     reasoning_match = re.search(
         r"(?is)(?:\*\*?\s*reasoning\s*\*\*?|reasoning)\s*[:\-]\s*"
@@ -270,7 +274,7 @@ def _parse_image_judge_response(response: str) -> tuple[str, int]:
         score = payload.get("Score", payload.get("score"))
         reasoning = payload.get("Reasoning", payload.get("reasoning"))
         if (
-            isinstance(score, int)
+            type(score) is int
             and 1 <= score <= 5
             and isinstance(reasoning, str)
             and reasoning.strip()
@@ -281,6 +285,8 @@ def _parse_image_judge_response(response: str) -> tuple[str, int]:
 
 
 def _parse_final_verdict(response: str) -> int | None:
+    if not isinstance(response, str):
+        return None
     matches = list(re.finditer(r"(?i)status:\s*", response))
     if not matches:
         return None
@@ -376,6 +382,25 @@ class SelfReflectionResult:
         }
 
 
+def validate_image_judge_records(
+    images_path: list[str], image_records: list[dict[str, object]]
+) -> None:
+    """Reject missing image judgments instead of silently dropping evidence."""
+    if len(images_path) != len(image_records):
+        raise ValueError("Screenshot paths and image judge records have different lengths")
+    for image_path, record in zip(images_path, image_records):
+        reasoning = record.get("Reasoning")
+        score = record.get("Score")
+        if (
+            record.get("ParseFailed")
+            or type(score) is not int
+            or not 1 <= score <= 5
+            or not isinstance(reasoning, str)
+            or not reasoning.strip()
+        ):
+            error = record.get("ParseError") or "invalid image score or reasoning"
+            raise ValueError(f"Incomplete image judgment for {image_path}: {error}")
+
 async def run_self_reflection_async(
     *,
     images: list[Path],
@@ -409,6 +434,7 @@ async def run_self_reflection_async(
     else:
         per_image = []
 
+    validate_image_judge_records([str(path) for path in images], list(per_image))
     image_paths = [record["image_path"] for record in per_image]
     reasonings = [record["Reasoning"] or "" for record in per_image]
 
@@ -426,14 +452,17 @@ async def run_self_reflection_async(
     for path_str in image_paths:
         user_content.append(_high_detail_image_part_from_path(Path(path_str)))
 
-    final_response = await asyncio.to_thread(
-        _call_model,
-        model_client=model_client,
-        system_prompt=final_verdict_system_prompt,
-        user_content=user_content,
-        max_new_tokens=final_max_new_tokens,
-    )
-    predicted_label = _parse_final_verdict(final_response)
+    for attempt in range(max(1, max_image_parse_retries)):
+        final_response = await asyncio.to_thread(
+            _call_model, model_client=model_client,
+            system_prompt=final_verdict_system_prompt, user_content=user_content,
+            max_new_tokens=final_max_new_tokens,
+        )
+        predicted_label = _parse_final_verdict(final_response)
+        if predicted_label is not None:
+            break
+    else:
+        raise ValueError("Judge response has no valid Status: success/failure verdict")
 
     return SelfReflectionResult(
         image_records=list(per_image),
@@ -484,6 +513,7 @@ def build_parser() -> argparse.ArgumentParser:
             "JSON result with per-image records and the final verdict."
         )
     )
+    parser.add_argument("--scope", choices=("latest-run", "trajectory"), default="latest-run")
     parser.add_argument("--config", required=True, help="Path to JSON config, or '-' for stdin.")
     parser.add_argument("--workspace-dir", default="", help="Base directory for relative image paths.")
     parser.add_argument("--output", default="", help="Write JSON result to this path instead of stdout.")
@@ -530,7 +560,12 @@ def main(argv: list[str] | None = None) -> int:
     discovered_run_dir = _infer_run_dir_from_images(resolved_images)
 
     # If config did not provide images, fall back to the latest run's screenshots.
-    if not resolved_images:
+    if args.scope == "trajectory":
+        manifest_images = [path for path, _ in trajectory_images(base_dir, load_browser_steps(base_dir))]
+        resolved_images = list(dict.fromkeys([*manifest_images, *task_screenshot_paths(base_dir)]))
+        discovered_run_dir = None
+
+    if not resolved_images and args.scope != "trajectory":
         discovered: list[Path] = []
         discovered_source = ""
         if args.auto_latest_run:
@@ -555,6 +590,14 @@ def main(argv: list[str] | None = None) -> int:
         workspace_dir=args.workspace_dir,
     )
     action_history_log = _load_action_history_log(artifact_dir)
+    if args.scope == "trajectory":
+        rows = load_browser_steps(base_dir)
+        action_history_log = format_action_history(rows)
+        if not action_history_log:
+            history_path = base_dir / "command_history.sh"
+            action_history_log = history_path.read_text() if history_path.exists() else ""
+        if not resolved_images:
+            raise ValueError("Trajectory reflection requires task screenshots")
 
     if not resolved_images:
         print(
@@ -588,8 +631,15 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     payload = result.to_dict()
+    if args.scope == "trajectory":
+        payload["evidence_digest"] = trajectory_evidence_digest(
+            base_dir, load_browser_steps(base_dir))
+        payload["action_history_digest"] = optional_file_digest(base_dir / "command_history.sh")
+        payload["plan_digest"] = optional_file_digest(base_dir / "plan.md")
+        payload["config_digest"] = optional_file_digest(Path(args.config))
     serialized = json.dumps(payload, indent=2, ensure_ascii=False)
     if args.output:
+        Path(args.output).parent.mkdir(parents=True, exist_ok=True)
         Path(args.output).write_text(serialized, encoding="utf-8")
         print(f"Wrote result to {args.output}", file=sys.stderr)
     else:

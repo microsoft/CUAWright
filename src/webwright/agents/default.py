@@ -37,6 +37,9 @@ class AgentConfig(BaseModel):
     attach_instance_template_after_observation: bool = False
     attach_plan_md_after_observation: bool = False
     require_self_reflection_success: bool = False
+    self_reflection_scope: str = "latest-run"
+    trajectory_reflection_config: str = "self_reflect_config.json"
+    trajectory_reflection_result: str = "reflection/judge_result.json"
     summary_every_n_steps: int = 0
     summary_user_prompt: str = DEFAULT_SUMMARY_USER_PROMPT
     # Strip the ARIA snapshot payload from observation messages older than the last N
@@ -206,7 +209,54 @@ class DefaultAgent:
         """Return an error string if done=true should be blocked pending judge success."""
         if not self.config.require_self_reflection_success:
             return None
+        if self.config.self_reflection_scope == "trajectory":
+            return self._trajectory_gate_error()
         return self._tool_gate_error()
+
+    def _trajectory_gate_error(self) -> str | None:
+        """Require a complete passing judgment for the current trajectory evidence."""
+        from webwright.tools.self_reflection import _parse_final_verdict, validate_image_judge_records
+        from webwright.utils.browser_evidence import (
+            load_browser_steps, optional_file_digest, task_screenshot_paths,
+            trajectory_evidence_digest, trajectory_images,
+        )
+        workspace_dir = self.get_template_vars().get("workspace_dir")
+        if not workspace_dir:
+            return "Completion blocked: no task workspace is available."
+        workspace = Path(workspace_dir)
+        result_path = workspace / self.config.trajectory_reflection_result
+        config_path = workspace / self.config.trajectory_reflection_config
+        try:
+            result = json.loads(result_path.read_text())
+            if not isinstance(result, dict):
+                raise ValueError("Invalid reflection result")
+            if result.get("evaluation_error") or type(result.get("predicted_label")) is not int:
+                raise ValueError("Incomplete reflection result")
+            if result["predicted_label"] != 1 or _parse_final_verdict(result.get("final_response")) != 1:
+                raise ValueError("Reflection has no passing final verdict")
+            rows = load_browser_steps(workspace)
+            images = list(dict.fromkeys([
+                *(path for path, _ in trajectory_images(workspace, rows)),
+                *task_screenshot_paths(workspace),
+            ]))
+            if not images or result.get("image_paths") != [str(path) for path in images]:
+                raise ValueError("Reflection does not cover all current screenshots")
+            validate_image_judge_records(result["image_paths"], result.get("image_records", []))
+            plan = workspace / "plan.md"
+            if not plan.is_file() or not plan.read_text().strip() or not config_path.is_file():
+                raise ValueError("Missing plan.md or reflection configuration")
+            expected = {
+                "evidence_digest": trajectory_evidence_digest(workspace, rows),
+                "action_history_digest": optional_file_digest(workspace / "command_history.sh"),
+                "plan_digest": optional_file_digest(plan),
+                "config_digest": optional_file_digest(config_path),
+            }
+            if any(result.get(key) != value for key, value in expected.items()):
+                raise ValueError("Trajectory evidence or configuration changed after reflection")
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            return (f"Completion blocked: {exc}. Take a browser step if evidence needs repair, "
+                    "then run self_reflection --scope trajectory for the current task before completing.")
+        return None
 
     def _tool_gate_error(self) -> str | None:
         """Require final_runs/run_<latest>/self_reflect_result.json with predicted_label == 1."""
