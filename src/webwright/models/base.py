@@ -257,6 +257,18 @@ class BaseModel:
             if not getattr(self.config, self._API_KEY_FIELD, ""):
                 raise RuntimeError(f"Missing {self._ENV_VAR}.")
 
+        if getattr(self.config, "response_mode", "") == "run_command_tool":
+            if self.config.action_field != "bash_command":
+                raise ValueError("run_command_tool requires the local workspace bash_command action field")
+            from webwright.models.tool_calls import DEFAULT_TOOL_FORMAT_ERROR_TEMPLATE
+            self.config.format_error_template = DEFAULT_TOOL_FORMAT_ERROR_TEMPLATE
+
+    def _parse_response(self, payload: dict[str, Any]) -> dict[str, Any]:
+        return parse_json_output(self._extract_text(payload), action_field=self.config.action_field)
+
+    def _response_extra(self, payload: dict[str, Any]) -> dict[str, Any]:
+        return {}
+
     # ---- subclass extension points ------------------------------------------------
 
     def _request_headers(self) -> dict[str, str]:
@@ -290,6 +302,7 @@ class BaseModel:
 
     def get_template_vars(self, **kwargs) -> dict[str, Any]:
         vars: dict[str, Any] = {
+            "response_mode": getattr(self.config, "response_mode", "json_schema"),
             "action_field": self.config.action_field,
             "model_name": self.config.model_name,
         }
@@ -396,6 +409,10 @@ class BaseModel:
             observation_messages.append(
                 self.format_message(role="user", content=parts, extra={"observation": observation})
             )
+        tool_call_id = (message.get("extra") or {}).get("tool_call_id")
+        if observation_messages and isinstance(tool_call_id, str):
+            # Answers the run_command call this observation came from.
+            observation_messages[0]["extra"]["tool_call_id"] = tool_call_id
         return observation_messages
 
     def _format_error(self, *, raw_text: str, error: str) -> FormatError:
@@ -487,7 +504,7 @@ class BaseModel:
                 raw_text=raw_text,
             )
             try:
-                parsed = parse_json_output(raw_text, action_field=self.config.action_field)
+                parsed = self._parse_response(response_payload)
                 break
             except ValueError as exc:
                 last_error = exc
@@ -516,14 +533,19 @@ class BaseModel:
                 action["python_code"] = action_text
             actions.append(action)
 
+        response_extra = self._response_extra(response_payload)
+        content = parsed.get("thought", "")
+        if response_extra:
+            content = parsed.get("final_response") or response_extra.get("reasoning_summary") or content
         return self.format_message(
             role="assistant",
-            content=parsed.get("thought", ""),
+            content=content,
             extra={
                 "actions": actions,
                 "done": bool(parsed.get("done", False)),
                 "final_response": parsed.get("final_response", ""),
                 "raw_response": parsed,
+                **response_extra,
                 "usage": self._usage_snapshot(),
             },
         )

@@ -7,5 +7,8 @@
 
 model:
   model_class: openai
+  # Native tool responses preserve encrypted reasoning between turns.
+  # Legacy response_mode: json_schema is deprecated.
+  response_mode: run_command_tool
   model_name: gpt-5.4
   openai_endpoint: https://api.openai.com/v1/responses

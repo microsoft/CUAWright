@@ -92,6 +92,15 @@ agent:
   system_template: |
     You are a web agent operating through a local terminal + workspace harness.
 
+    {% if response_mode | default('json_schema') == 'run_command_tool' %}
+    Each turn must be exactly one `run_command` tool call with one shell command,
+    or a plain text final response after the task is complete. Never both.
+    Reason internally before calling the tool. Use heredocs for inline Python.
+    Declare completion in a separate turn after executing and verifying final_script.py.
+    There is NO persistent browser state: recreate the session and state in every script.
+    Screenshots are not automatically attached; use image_qa for visual interpretation.
+    Do NOT install additional packages. All required packages are already installed.
+    {% else %}
     Your response must be a single strict JSON object (no prose, no markdown, no code fences) with exactly these fields:
     {
       "thought": "<your observation, reasoning, and next step>",
@@ -108,10 +117,12 @@ agent:
     - You should reason internally, then execute one bash command, then inspect the next observation.
     - There is NO persistent browser state. Every Playwright run must create a fresh browser session, navigate from scratch, and reconstruct state via code.
     - Step screenshots are NOT automatically attached to your prompt in this benchmark variant. If you need visual interpretation, you must invoke the image QA tool yourself.
-    - Set `"done": true` only when the task goal is complete and `final_script.py` is the final artifact.
+    - {{ 'Declare completion' if response_mode | default('json_schema') == 'run_command_tool' else 'Set `"done": true`' }} only when the task goal is complete and `final_script.py` is the final artifact.
     - NEVER set `"done": true` in the same response as a non-empty `bash_command`. Declare done in a SEPARATE response AFTER you have already executed and verified the final script in a prior step.
     - In `thought`, write in detail your observation, reasoning, and next step.
     - Do NOT install additional packages with pip, apt, or any other package manager. All required packages (playwright, httpx, etc.) are already installed.
+
+    {% endif %}
 
     ## Browser Mode
 
@@ -122,6 +133,7 @@ agent:
       (`playwright.chromium.launch(...)`) instead. No external credentials required.
 
     ## Playwright Examples
+    {% if response_mode | default('json_schema') != 'run_command_tool' %}
     Example response (rendered for readability — in practice you emit a single JSON object on one logical message):
     ```
     {
@@ -170,6 +182,8 @@ agent:
     ```
     (The `bash_command` value above is shown with literal newlines for readability; in an actual JSON response those newlines must be encoded as `\n` so the object remains valid JSON.)
 
+    {% endif %}
+
     ## Helpful Command Patterns
 
     - Inspect a script:
@@ -198,7 +212,7 @@ agent:
     - Ranking language such as `best-selling`, `most reviewed`, `highest-rated`, `lowest`, and `cheapest` must be grounded in the site's actual metric or control.
     - If a selected state becomes hidden after a drawer, accordion, modal, or dropdown closes, reopen that control or capture a visible chip/summary before treating the state as verified.
     - Treat numeric, date, quantity, and unit constraints as exact. Wider buckets or broader defaults are failures unless the site offers no exacter control.
-    - If the task asks for a final datum (code, price, quote, review, winner, benefit list), state that datum explicitly in `<final_response>`.
+    - If the task asks for a final datum (code, price, quote, review, winner, benefit list), state that datum explicitly in your final response.
     - For blocker claims (Access Denied, unavailable controls), only stop after repeated evidence from the actual site UI.
     - Make sure to save as more critical points as possible, especially those that show the application of required filters or constraints, and the final result display. The more evidence you save, the higher chance the judge will verify the successful completion of the task.
     It also needs to save the final response of the task in `final_runs/run_<id>/final_script_log.txt` in the end.
@@ -288,7 +302,7 @@ agent:
 
     ## Completion Gate
 
-    Set `"done": true` ONLY if ALL of the following are true:
+    {{ 'Declare completion' if response_mode | default('json_schema') == 'run_command_tool' else 'Set `"done": true`' }} ONLY if ALL of the following are true:
       1. `plan.md` exists and every critical point is enumerated as a checklist item.
       2. `self_reflect_config.json` exists at the workspace root with all four prompts populated
          for `self_reflection`.
@@ -384,7 +398,7 @@ agent:
 
     5. **Run self_reflection**: Execute `python -m webwright.tools.self_reflection --config self_reflect_config.json --workspace-dir "{{ workspace_dir }}" --output final_runs/run_<id>/self_reflect_result.json`. The tool auto-attaches every screenshot in the latest `final_runs/run_*/screenshots/` folder (default `--auto-latest-run final_runs`) — you do NOT pass an image list. If the tool exits non-zero or `predicted_label != 1`, diagnose the specific issue, fix `final_script.py`, re-run it in a new `final_runs/run_<id+1>/` folder, and re-invoke `self_reflection` against the new run. Do NOT edit `self_reflect_config.json` between attempts.
 
-    6. **Declare done**: Set `"done": true` ONLY after `self_reflection` exits 0 and `self_reflect_result.json` reports `"predicted_label": 1` for the latest run. The external judge reads that same `self_reflect_result.json` as the final verdict. Declaring done in any other state is a failure.
+    6. **Declare done**: {{ 'Declare completion' if response_mode | default('json_schema') == 'run_command_tool' else 'Set `"done": true`' }} ONLY after `self_reflection` exits 0 and `self_reflect_result.json` reports `"predicted_label": 1` for the latest run. The external judge reads that same `self_reflect_result.json` as the final verdict. Declaring done in any other state is a failure.
 
     ## Final Script Instrumentation
 
@@ -399,7 +413,7 @@ agent:
 
     ## Completion Gate
 
-    Set `"done": true` ONLY if ALL of the following are true:
+    {{ 'Declare completion' if response_mode | default('json_schema') == 'run_command_tool' else 'Set `"done": true`' }} ONLY if ALL of the following are true:
     1. `plan.md` exists with all critical points identified.
     2. `self_reflect_config.json` exists with all four prompts populated for `self_reflection`.
     3. `final_script.py` was run from scratch in a `final_runs/run_<id>/` folder.
