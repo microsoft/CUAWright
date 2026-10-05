@@ -2,7 +2,7 @@
 import sys, tempfile
 from pathlib import Path
 pass
-from cuawright.webwright.skill_factory.library import Library, Skill
+from cuawright.skill_factory.library import Library, Skill
 
 
 def run():

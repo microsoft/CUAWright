@@ -11,8 +11,8 @@ pip install -e ".[skill-factory]" -e extensions/skill-factory
 cuawright-skill-factory --help
 ```
 
-Modules retain their existing `cuawright.webwright.skill_factory` and
-`cuawright.webwright.tools.skill_use` names. Legacy `webwright` imports are
+Modules retain their existing `cuawright.skill_factory` and
+`cuawright.tools.skill_use` names. Legacy `webwright` imports are
 supported when the extension is installed. Installing it does not enable
 automatic learning or reuse in normal runs; invoke its commands explicitly.
 
@@ -27,4 +27,4 @@ python -m build extensions/skill-factory
 
 Build and distribute the companion wheel alongside the core wheel; published
 `cuawright[skill-factory]` resolves the matching `cuawright-skill-factory` release.
-See the [full guide](src/cuawright/webwright/skill_factory/README.md).
+See the [full guide](src/cuawright/skill_factory/README.md).

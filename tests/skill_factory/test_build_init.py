@@ -12,9 +12,9 @@ from pathlib import Path
 import pytest
 import yaml
 
-import cuawright.webwright.skill_factory.build as B
-import cuawright.webwright.skill_factory.init as I
-from cuawright.webwright.skill_factory.route import agent_cfg   # config resolution shared by build and route
+import cuawright.skill_factory.build as B
+import cuawright.skill_factory.init as I
+from cuawright.skill_factory.route import agent_cfg   # config resolution shared by build and route
 
 
 # ---------------------------------------------------------------- build: substitution
@@ -297,7 +297,7 @@ def test_the_readme_spec_shows_every_key_init_writes():
     knob they never learn they have — they'd think it was CLI-only. This drifted twice, silently:
     once when --draws was added, once when --verify-rounds was. Nothing pinned the docs to the
     code, so pin them."""
-    readme = Path(__file__).resolve().parents[2] / "extensions" / "skill-factory" / "src" / "cuawright" / "webwright" / "skill_factory" / "README.md"
+    readme = Path(__file__).resolve().parents[2] / "extensions" / "skill-factory" / "src" / "cuawright" / "skill_factory" / "README.md"
     text = readme.read_text(encoding="utf-8")
     start = text.index("build:", text.index("# skill.yaml"))
     shown = set(yaml.safe_load(text[start:text.index("```", start)])["build"])
@@ -344,7 +344,7 @@ def test_a_named_gateway_reaches_the_agent_without_being_asked(monkeypatch):
 def test_the_cli_defaults_come_along_because_c_replaces_them(monkeypatch):
     """-c is `config_spec or DEFAULT_CONFIGS` (cli.py), not an addition — overrides alone would
     drop base.yaml. And they're imported, not copied, so they can't drift."""
-    from cuawright.webwright.run.cli import DEFAULT_CONFIGS
+    from cuawright.run.browser import DEFAULT_CONFIGS
     monkeypatch.setenv("OPENAI_ENDPOINT", "https://gw.example/api/responses")
     got = agent_cfg([])
     assert got[:len(DEFAULT_CONFIGS)] == list(DEFAULT_CONFIGS)

@@ -1,0 +1,13 @@
+# Model modifier — Claude (Anthropic) variant.
+#
+# Stack on top of base.yaml:
+#   python -m webwright.run.cli -c base.yaml -c model_claude.yaml ...
+#
+# Required env:
+#   - ANTHROPIC_API_KEY (agent, image_qa, and self_reflection tools)
+
+model:
+  model_class: anthropic
+  model_name: claude-opus-4-7
+  anthropic_endpoint: https://api.anthropic.com/v1/messages
+  anthropic_version: "2023-06-01"

@@ -17,16 +17,16 @@ ROOT = Path(__file__).resolve().parents[3]
 if os.environ.get("CUAWRIGHT_TEST_INSTALLED") != "1":
     sys.path.insert(0, str(ROOT / "src"))
 
-from cuawright.desktop import exceptions
-from cuawright.desktop.agents import default as actor
-from cuawright.desktop.config import prompts
-from cuawright.desktop.environments.osworld import guest_tools as guest
-from cuawright.desktop.environments.osworld import source
-from cuawright.desktop.models.utils import (
-    actions_toolcall_response as protocol,
+from cuawright import exceptions
+from cuawright.agents import desktop as actor
+from cuawright.config.desktop import prompts
+from cuawright.environments.desktop import guest_tools as guest
+from cuawright.run.benchmarks.osworld import source
+from cuawright.tools import (
+    terminal as protocol,
 )
-from cuawright.desktop.run.benchmarks import osworld as runner
-from cuawright.desktop.utils import artifacts as storage
+from cuawright.run.benchmarks import osworld as runner
+from cuawright.utils import artifacts as storage
 
 
 @pytest.fixture
@@ -981,35 +981,29 @@ def test_guest_client_sources_execute_and_exactly_match_commands():
         }
 
 
-def test_runtime_closure_line_threshold_and_no_legacy_imports():
+def test_unified_runtime_has_no_legacy_core_imports():
     import ast
 
-    package = ROOT / "src/cuawright/desktop"
-    files = sorted(package.rglob("*.py"))
-    counts = {
-        str(path.relative_to(package)): len(path.read_bytes().splitlines())
-        for path in files
-    }
-    assert sum(counts.values()) <= 3000, counts
-    assert len(files) >= 13
-    for path in files:
-        tree = ast.parse(path.read_text())
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Import):
-                assert all(
-                    not item.name.startswith("cuawright.") for item in node.names
-                )
-            elif isinstance(node, ast.ImportFrom):
-                if node.level:
-                    assert node.level <= len(path.relative_to(package).parts)
-                else:
-                    assert not (node.module or "").startswith("cuawright.")
-    print("Runtime physical lines:", sum(counts.values()), counts)
+    package = ROOT / "src/cuawright"
+    assert not (package / "webwright").exists()
+    assert not (package / "desktop").exists()
+    for name in ("agents", "config", "environments", "models", "run", "tools", "utils"):
+        assert (package / name / "__init__.py").is_file()
+    for path in package.rglob("*.py"):
+        for node in ast.walk(ast.parse(path.read_text())):
+            imports = (
+                [item.name for item in node.names]
+                if isinstance(node, ast.Import)
+                else [node.module or ""] if isinstance(node, ast.ImportFrom) else []
+            )
+            assert not any(
+                name == "webwright" or name.startswith("webwright.") for name in imports
+            ), path
 
 
 def test_help_does_not_import_osworld_or_openai():
     command = (
-        "import sys; from cuawright.desktop.run.cli import main; "
+        "import sys; from cuawright.run.desktop import main; "
         "assert 'desktop_env' not in sys.modules; assert 'openai' not in sys.modules; "
         "main(['--help'])"
     )
@@ -1036,12 +1030,12 @@ def test_installed_wheel_origin_and_contents_when_available():
     if os.environ.get("CUAWRIGHT_TEST_INSTALLED") == "1":
         assert ".wheel-env" in str(Path(runner.__file__).resolve())
         assert storage.harness_provenance()["runtime"] == storage.runtime_inventory(
-            ROOT / "src/cuawright/desktop"
+            ROOT / "src/cuawright"
         )
-        for name in ("agents", "config", "environments", "models", "run", "cli"):
+        for name in ("agents", "config", "environments", "models", "run"):
             module = f"cuawright.{name}"
-            assert module not in sys.modules
-            assert __import__("importlib").util.find_spec(module) is None
+            assert __import__("importlib").util.find_spec(module) is not None
+        assert "webwright" not in sys.modules
     wheels = list((ROOT / "release/osworld/dist").glob("*.whl"))
     if not wheels:
         assert os.environ.get("CUAWRIGHT_TEST_INSTALLED") != "1"
@@ -1063,9 +1057,9 @@ def test_installed_wheel_origin_and_contents_when_available():
         )
         for name in python_files:
             assert wheel.read(name) == (ROOT / "src" / name).read_bytes()
-        provenance = json.loads(wheel.read("cuawright/desktop/build_provenance.json"))
+        provenance = json.loads(wheel.read("cuawright/build_provenance.json"))
         assert provenance["runtime"] == storage.runtime_inventory(
-            ROOT / "src/cuawright/desktop"
+            ROOT / "src/cuawright"
         )
 
 
@@ -1076,9 +1070,10 @@ def test_root_metadata_includes_web_and_desktop():
     project = metadata["project"]
     assert project["name"] == "cuawright"
     assert project["scripts"] == {
-        "cuawright-web": "cuawright.webwright.run.cli:app",
-        "cuawright-desktop": "cuawright.desktop.run.cli:main",
-        "webwright": "cuawright.webwright.run.cli:app",
+        "cuawright": "cuawright.run.cli:main",
+        "cuawright-web": "cuawright.run.browser:app",
+        "cuawright-desktop": "cuawright.run.desktop:main",
+        "webwright": "webwright.run.cli:app",
     }
     assert project["optional-dependencies"]["desktop"] == [
         "openai>=2.0,<3; python_version >= '3.12'"
@@ -1090,7 +1085,7 @@ def test_root_metadata_includes_web_and_desktop():
         "tests",
         "release/osworld/tests",
     ]
-    assert (ROOT / "src/cuawright/webwright/run/cli.py").is_file()
+    assert (ROOT / "src/cuawright/run/browser.py").is_file()
     assert (ROOT / "licenses/OSWorld-runtime-APACHE-2.0.txt").is_file()
 
 
@@ -1109,7 +1104,22 @@ def test_desktop_source_contains_only_public_or_loopback_urls():
     from urllib.parse import urlsplit
 
     allowed_hosts = {"api.openai.com", "github.com", "127.0.0.1"}
-    for path in (ROOT / "src/cuawright/desktop").rglob("*.py"):
+    package = ROOT / "src/cuawright"
+    files = [
+        package / name
+        for name in (
+            "agents/desktop.py",
+            "agents/default.py",
+            "models/openai_response_model.py",
+            "models/responses.py",
+            "tools/terminal.py",
+            "run/desktop.py",
+            "utils/artifacts.py",
+        )
+    ]
+    for directory in ("config/desktop", "environments/desktop", "run/benchmarks"):
+        files.extend((package / directory).rglob("*.py"))
+    for path in files:
         text = path.read_text()
         for url in re.findall(r"https?://[^\s\"'<>`]+", text):
             assert urlsplit(url).hostname in allowed_hosts, path

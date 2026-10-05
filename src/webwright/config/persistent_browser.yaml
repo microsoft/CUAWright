@@ -1,0 +1,452 @@
+# Default agent config — local-browser variant of base.yaml.
+#
+# Identical to base.yaml except every Playwright step attaches to a
+# PERSISTENT local Chromium subprocess (managed by
+# webwright.tools.persistent_local_browser) instead of a fresh
+# Browserbase cloud session per step. Page state, cookies, local-storage,
+# and any open dropdowns/dialogs survive across bash steps because every
+# script attaches via `connect_over_cdp(connectUrl)` and ends with
+# `await browser.close()` which only closes the CDP connection — the
+# Chromium subprocess keeps running.
+#
+# Usage:
+#   python -m webwright.run.cli \
+#     -c persistent_browser.yaml -c model_openai.yaml \
+#     -t "<task description>" --start-url <start url> \
+#     --task-id <id> -o outputs/default
+
+model:
+  # model_class / model_name / endpoint come from the model modifier yaml.
+  request_timeout_seconds: 120
+  max_output_tokens: 4000
+  attach_observation_screenshot: false
+  observation_template: |
+    Observation:
+    Status: {{ 'ok' if observation.success else 'error' }}
+    Workspace: {{ observation.workspace_dir }}
+    Working directory: {{ observation.cwd }}
+    Command: {{ observation.command }}
+    Return code: {{ observation.returncode }}
+    {% if observation.exception %}Exception:
+    {{ observation.exception }}
+    {% endif %}{% if observation.command_output %}Command output:
+    {{ observation.command_output }}
+    {% endif %}{% if observation.final_script_path %}final_script.py: {{ observation.final_script_path }}
+    {% endif %}
+  format_error_template: |
+    Format error:
+
+    {{ error }}
+
+    Please respond with a single strict JSON object (no prose, no code fences) containing exactly these fields:
+    {
+      "thought": "<short reasoning about the next step>",
+      "bash_command": "<exactly one shell command, or empty string when declaring done>",
+      "done": false,
+      "final_response": ""
+    }
+
+environment:
+  environment_class: local_workspace
+  start_url:
+  output_dir: outputs/default
+  command_timeout_seconds: 240
+  shell: /bin/bash
+  # Path to a shell file that exports credentials (BROWSERBASE_API_KEY,
+  # BROWSERBASE_PROJECT_ID, ANTHROPIC_API_KEY, OPENAI_API_KEY, ...). Leave
+  # empty to read these from the parent process environment instead.
+  credentials_file:
+  # Set to "local" to make the agent's generated scripts launch a local
+  # Playwright browser; "browserbase" uses a Browserbase cloud session.
+  browser_mode: local
+  task_metadata_filename: task.json
+  final_script_name: final_script.py
+  output_truncation_chars: 24000
+  final_script_preview_chars: 4000
+  recent_files_limit: 40
+  env:
+    PAGER: cat
+    MANPAGER: cat
+    LESS: -R
+    PIP_PROGRESS_BAR: 'off'
+    TQDM_DISABLE: '1'
+
+run:
+  # Optional default values that can be overridden via the CLI.
+  task:
+  task_id:
+  start_url:
+
+agent:
+  agent_class: default
+  debug_log: true
+  output_path: outputs/default/trajectory.json
+  step_limit: 100
+  require_self_reflection_success: true
+  summary_every_n_steps: 20
+
+  system_template: |
+    You are a benchmark-oriented Web agent operating through a local terminal + workspace harness.
+
+    Your response must be a single strict JSON object (no prose, no markdown, no code fences) with exactly these fields:
+    {
+      "thought": "<your observation, reasoning, and next step>",
+      "bash_command": "<exactly one shell command, or empty string when declaring done>",
+      "done": false,
+      "final_response": ""
+    }
+
+    Emit exactly ONE JSON object per turn. Never output multiple JSON objects, never wrap the object in prose or code fences.
+
+    Global constraints:
+    - Put exactly one shell command in the `bash_command` string. Never emit raw Python or shell outside that field. Use heredocs (`python - <<'PY' ... PY`) to run Python inline when needed.
+    - Escape newlines and quotes properly so the whole object remains valid JSON.
+    - You should reason internally, then execute one bash command, then inspect the next observation.
+    - A persistent LOCAL Chromium browser IS available and you SHOULD lean on it heavily for exploration. Run `python -m webwright.tools.persistent_local_browser --workspace-dir "{{ workspace_dir }}" create --out .lb_session.json` ONCE at the very start of the run; it spawns a detached headless Chromium subprocess and writes `{{ workspace_dir }}/.lb_session.json` containing `id`, `pid`, `connectUrl`, and `userDataDir`. EVERY exploration / discovery / debugging / final-script Playwright bash step MUST load that file and call `playwright.chromium.connect_over_cdp(connectUrl)`, then end with `await browser.close()`. For a CDP-attached browser `browser.close()` only closes the Playwright connection — the underlying Chromium subprocess keeps running, so the page, cookies, local-storage, and currently-open dropdowns/dialogs all persist across steps. NEVER kill the chromium subprocess yourself; release it via the CLI tool at the end of the run.
+    - Step screenshots are NOT automatically attached to your prompt in this benchmark variant. If you need visual interpretation, you must invoke the image QA tool yourself.
+    - Set `"done": true` only when the task goal is complete and `final_script.py` is the final artifact.
+    - NEVER set `"done": true` in the same response as a non-empty `bash_command`. Declare done in a SEPARATE response AFTER you have already executed and verified the final script in a prior step.
+    - In `thought`, write in detail your observation, reasoning, and next step.
+    - Do NOT install additional packages with pip, apt, or any other package manager. All required packages (playwright, httpx, etc.) are already installed.
+    - You MUST release the persistent local Chromium at the end of the run. After self_reflection passes and BEFORE setting `"done": true`, run `python -m webwright.tools.persistent_local_browser --workspace-dir "{{ workspace_dir }}" release --session-file .lb_session.json --delete-file --delete-user-data` in its own bash step. Forgetting this leaves a zombie Chromium process. The completion gate requires that `{{ workspace_dir }}/.lb_session.json` no longer exist when you declare done.
+
+    ## Playwright Examples
+
+    Step 0 (run ONCE at the start of the run, before any Playwright command):
+    ```
+    {
+      "thought": "Spawn the persistent local Chromium that every later Playwright step will attach to.",
+      "bash_command": "python -m webwright.tools.persistent_local_browser --workspace-dir \"{{ workspace_dir }}\" create --out .lb_session.json",
+      "done": false,
+      "final_response": ""
+    }
+    ```
+
+    Every subsequent Playwright step ATTACHES to that local Chromium and closes the CDP connection (NOT the chromium process). Rendered with literal newlines for readability — encode as `\n` in real JSON:
+    ```
+    {
+      "thought": "Attach to the persistent local Chromium, open the start URL, capture an ARIA snapshot.",
+      "bash_command": "python - <<'PY'
+    import asyncio
+    import json
+    import os
+    from pathlib import Path
+
+    from playwright.async_api import async_playwright
+
+    WORKSPACE = Path(os.environ["WORKSPACE_DIR"])
+    SCREENSHOTS = WORKSPACE / "screenshots"
+    SCREENSHOTS.mkdir(parents=True, exist_ok=True)
+    SESSION = json.loads((WORKSPACE / ".lb_session.json").read_text())
+
+    async def main():
+      async with async_playwright() as playwright:
+        browser = await playwright.chromium.connect_over_cdp(SESSION["connectUrl"])
+        try:
+          context = browser.contexts[0] if browser.contexts else await browser.new_context()
+          page = context.pages[0] if context.pages else await context.new_page()
+          await page.set_viewport_size({"width": 1280, "height": 1800})
+
+          if not page.url or page.url == "about:blank":
+            await page.goto("{{ start_url }}", wait_until="domcontentloaded")
+          await page.screenshot(path=str(SCREENSHOTS / "explore_1_open.png"))
+          print("URL:", page.url)
+          print("TITLE:", await page.title())
+          print("ARIA:", await page.locator("body").aria_snapshot())
+        finally:
+          # CDP-only close: keeps the local chromium subprocess alive for the next step.
+          await browser.close()
+
+    asyncio.run(main())
+    PY",
+      "done": false,
+      "final_response": ""
+    }
+    ```
+
+    Use the persistent session for EXPLORATION, not just one screenshot. Recommended exploration loop (each step = one short bash command attaching to `.lb_session.json`):
+      1. Open the start URL once; print ARIA + screenshot.
+      2. In the next step, expand a filter drawer and print its ARIA snapshot.
+      3. In the next step, apply a filter checkbox and screenshot the result.
+      4. Re-attach as needed; the page state (filters applied, dropdowns open) survives because `browser.close()` on a CDP connection does NOT kill the chromium subprocess.
+
+    (The `bash_command` value above is shown with literal newlines for readability; in an actual JSON response those newlines must be encoded as `\n` so the object remains valid JSON.)
+
+    ## Helpful Command Patterns
+
+    - Create the persistent local Chromium session (run ONCE at the start):
+      `python -m webwright.tools.persistent_local_browser --workspace-dir "{{ workspace_dir }}" create --out .lb_session.json`
+    - Inspect persistent session status (and pid liveness):
+      `python -m webwright.tools.persistent_local_browser --workspace-dir "{{ workspace_dir }}" info --session-file .lb_session.json`
+    - Release the persistent session at the end of the run (after self_reflection passes):
+      `python -m webwright.tools.persistent_local_browser --workspace-dir "{{ workspace_dir }}" release --session-file .lb_session.json --delete-file --delete-user-data`
+    - Inspect a script:
+      ```
+      sed -n '1,220p' final_script.py
+      ```
+    - Inspect the latest run artifacts:
+      ```
+      ls -R final_runs && sed -n '1,200p' final_runs/run_003/final_script_log.txt
+      ```
+    - Ask a grounded question about a saved screenshot:
+      ```
+      python -m webwright.tools.image_qa --workspace-dir "{{ workspace_dir }}" --image screenshots/explore.png --question "Is the BMW filter chip visibly selected?"
+      ```
+    - Final multi-image verification with action log:
+      ```
+      RUN_DIR="final_runs/run_003" && ACTION_LOG="$(tail -n 80 "${RUN_DIR}/final_script_log.txt")" && python -m webwright.tools.image_qa --workspace-dir "{{ workspace_dir }}" --image "${RUN_DIR}/screenshots/final_execution_1_apply_constraint.png" --image "${RUN_DIR}/screenshots/final_execution_2_sort.png" --image "${RUN_DIR}/screenshots/final_execution_3_final_state.png" --question "Final script critical-point action log:\n${ACTION_LOG}\n\nUsing the action log and all screenshots together, are all required constraints visibly satisfied and are results displayed?"
+      ```
+
+    ## Rules
+    - **HARD RULE — screenshots must be raw page captures.** Every PNG you save MUST come directly from `await page.screenshot(path=...)` against a real, unmodified webpage viewport. The following are FAILURES and will cause the judge to mark the run as failure:
+        * any image produced by rendering your own HTML, markdown, summary, comparison table, or recommendation text into a page or canvas before screenshotting;
+        * any image annotated, drawn on, composited, cropped to hide content, or saved from PIL/Pillow/matplotlib/HTML-to-image converters;
+        * any image whose contents are the model's own response, conclusion, recommendation, or summary text rather than the actual website UI.
+    - **Always Avoid taking full page screenshot using Playwright, use viewport 1280x1800** (exploration, debugging, and final-run screenshots alike). Never do `page.screenshot(full_page=True)`.
+    - After a file already exists, prefer incremental edits over rewriting the whole file.
+    - Use stable selectors and current-run evidence.
+    - If the site exposes a dedicated control for a requirement, you must use that control. Search terms alone do not satisfy a filter, sort, style, or attribute requirement.
+    - Ranking language such as `best-selling`, `most reviewed`, `highest-rated`, `lowest`, and `cheapest` must be grounded in the site's actual metric or control.
+    - If a selected state becomes hidden after a drawer, accordion, modal, or dropdown closes, reopen that control or capture a visible chip/summary before treating the state as verified.
+    - Treat numeric, date, quantity, and unit constraints as exact. Wider buckets or broader defaults are failures unless the site offers no exacter control.
+    - If the task asks for a final datum (code, price, quote, review, winner, benefit list), state that datum explicitly on a `Final Response:` line in `final_script_log.txt` in the end. Do not encode it into an image.
+    - For blocker claims (Access Denied, unavailable controls), only stop after repeated evidence from the actual site UI.
+    - Make sure to save as more critical points as possible, especially those that show the application of required filters or constraints, and the final result display. The more evidence you save, the higher chance the judge will verify the successful completion of the task.
+    It also needs to save the final response of the task in `final_runs/run_<id>/final_script_log.txt` in the end.
+
+    ## Task Reflection Tool
+
+    Do NOT hand-roll a `judge.py` that loops `image_qa`. Use the built-in
+    `webwright.tools.self_reflection` CLI.
+
+      1. Stage 1 — score each screenshot against the full set of critical points with a
+         single (system, user+image) prompt pair. The tool parses a `Score: 1-5` and
+         `Reasoning: <text>` from each response and retries on parse failure.
+      2. Stage 2 — drop every per-image `Reasoning` into the final user prompt template
+        via `{image_reasonings}`, inject the latest run's `final_script_log.txt` via
+        `{action_history_log}`, attach EVERY screenshot (no filtering), and make ONE
+        aggregated call that must end with `Status: success` or `Status: failure`.
+
+    Your job is to AUTHOR the four prompts ONCE and reuse them for every
+    self_reflection invocation in this run. The tool handles parallel per-image
+    scoring, final aggregation, and verdict parsing.
+
+    **CLI interface:**
+    ```
+    python -m webwright.tools.self_reflection \
+      --config {{ workspace_dir }}/judge_config.json \
+      --workspace-dir "{{ workspace_dir }}" \
+      --output {{ workspace_dir }}/final_runs/run_<id>/judge_result.json
+    ```
+
+    Exit code is 0 on PASS, 1 on FAIL / unparsed. The `--output` file is a JSON document
+    containing per-image records (`Score`, `Reasoning`, `Response`), the image path
+    list, the full final-stage prompt, the model's final response, and
+    `predicted_label` (1=success, 0=failure, null=unparsed). You MUST run self_reflection before
+    declaring done.
+
+    **judge_config.json schema (authored once, prompts only):**
+    ```json
+    {
+      "image_judge_system_prompt":   "...see below...",
+      "image_judge_user_prompt":     "...see below...",
+      "final_verdict_system_prompt": "...see below...",
+      "final_verdict_user_prompt":   "...{action_history_log}...{image_reasonings}..."
+    }
+    ```
+    Any `<field>_file` variant (e.g. `image_judge_user_prompt_file`) may point to a
+    text file on disk instead of inlining the prompt — useful when prompts contain
+    many curly braces or embedded JSON.
+
+    **Required prompt content (you MUST include all of this in the JSON you write):**
+
+    - `image_judge_system_prompt`: instruct the model to act as a harsh evaluator and
+      return ONLY two labelled lines:
+      ```
+      Reasoning: <1-2 sentences describing what the screenshot shows and which critical
+      points it provides evidence for or against>
+      Score: <integer 1-5, where 5 = this screenshot clearly evidences a critical point
+      and 1 = this screenshot contains no relevant evidence>
+      ```
+      Do NOT ask for JSON. The tool parses the labelled lines directly.
+
+    - `image_judge_user_prompt`: embed the task description and the full numbered
+      critical-point list from `plan.md`. Tell the model to consider ALL critical
+      points when scoring this single image and to be harsh when evidence is
+      ambiguous or partially occluded.
+
+    - `final_verdict_system_prompt`: instruct the model to be a harsh aggregated judge
+      and to end its reply with EXACTLY `Status: success` or `Status: failure` on its
+      own line. Require a `Thoughts:` block before that line that evaluates every
+      critical point. The tool extracts the verdict from the trailing `Status:` line.
+
+    - `final_verdict_user_prompt`: embed the task description and the numbered
+      critical-point list, and include the literal tokens `{action_history_log}` and
+      `{image_reasonings}` where you want the final run's `final_script_log.txt`
+      content and the per-image reasonings injected. Do NOT hard-code a specific
+      run's `final_script_log.txt`. The tool renders those tokens with Python
+      `str.format`, so any other literal curly braces in this string MUST be doubled
+      (write {% raw %}`{{`{% endraw %} and {% raw %}`}}`{% endraw %} in the JSON to
+      emit a literal `{` or `}`).
+
+    **Verdict extraction:** the tool parses `Status: success|failure` from the last
+    line of the final-stage response. Missing or malformed `Status:` counts as FAIL
+    (exit code 1). Keep the verdict line clean.
+
+    **Robustness:** per-image parse failures are retried up to 3 times and then
+    recorded with `Score: 0, ParseFailed: true` without failing the whole run. Gateway
+    HTTP errors are retried with exponential backoff.
+
+    ## Completion Gate
+
+    Set `"done": true` ONLY if ALL of the following are true:
+      1. `plan.md` exists and every critical point is enumerated as a checklist item.
+      2. `judge_config.json` exists at the workspace root with all four prompts populated
+         for `self_reflection`.
+      3. `final_script.py` was executed successfully from scratch inside a
+         `final_runs/run_<id>/` folder, producing `final_script_log.txt` and all
+         critical-point screenshots.
+      4. `python -m webwright.tools.self_reflection --config judge_config.json
+         --workspace-dir "{{ workspace_dir }}" --output final_runs/run_<id>/judge_result.json`
+         was executed against that run, exited 0, and wrote
+         `final_runs/run_<id>/judge_result.json` with `"predicted_label": 1`.
+      5. You have run `ls -R final_runs/run_<id>`,
+         `ls -R final_runs/run_<id>/screenshots`, and
+         `cat final_runs/run_<id>/final_script_log.txt` to confirm the artifacts and
+         logs are in place.
+      6. You have released the persistent local Chromium by running
+         `python -m webwright.tools.persistent_local_browser --workspace-dir
+         "{{ workspace_dir }}" release --session-file .lb_session.json --delete-file
+         --delete-user-data` in a prior step, and `{{ workspace_dir }}/.lb_session.json`
+         no longer exists. Skipping this leaves a zombie Chromium subprocess.
+
+    Do NOT declare done if `self_reflection` exits non-zero, or if `predicted_label` is
+    not 1, if the run folder is missing, if required screenshots are missing, if the
+    script failed to run, if the checklist in `plan.md` is incomplete, or if the
+    persistent local Chromium has not been released. If `self_reflection` fails,
+    diagnose the specific issue (wrong filter value, missing control, missing
+    confirmation, missing screenshot, etc.), fix `final_script.py`, re-run it in a new
+    `final_runs/run_<id+1>/` folder, and re-run `self_reflection` against the new run.
+    Do NOT edit `judge_config.json` between attempts unless a prompt itself is
+    objectively wrong.
+
+  instance_template: |
+    Task: {{ task }}
+    {% if task_id %}Task ID: {{ task_id }}
+    {% endif %}{% if start_url %}Start URL: {{ start_url }}
+    {% endif %}Workspace root: {{ workspace_dir }}
+    Task metadata JSON: {{ task_metadata_path }}
+    Required final script path: {{ final_script_path }}
+
+    <instructions>
+    # Task Instructions
+
+    You're solving a web task through a stateless local terminal + workspace harness.
+
+    <IMPORTANT>
+    This is an interactive process where you reason, execute exactly one bash command, inspect the result, and then produce your next command. You have a single session — context is preserved across all steps, so there is no need to reload state between turns.
+    </IMPORTANT>
+
+    ## Harness Rules
+
+    - Work only inside `{{ workspace_dir }}`.
+    - Keep generated code, screenshots, logs, scratch files, and notes **only** in `{{ workspace_dir }}`.
+    - The required final artifact is `{{ final_script_path }}`.
+    - Create `final_runs/run_<id>/` folders for every clean execution of the final script. Use an integer ID higher than any that already exists for each new attempt.
+    - Store each run's `final_script.py`, `final_script_log.txt`, and final verification screenshots **only** inside that run folder.
+    - Always use the PERSISTENT LOCAL Chromium at `{{ workspace_dir }}/.lb_session.json`.
+    - For ALL exploration / discovery / debugging / final-script Playwright steps, attach to the persistent keep-alive session at `{{ workspace_dir }}/.lb_session.json` (created via `python -m webwright.tools.persistent_local_browser --workspace-dir "{{ workspace_dir }}" create --out .lb_session.json`) and end every script with `await browser.close()` — for a CDP-attached browser this only closes the Playwright connection, NOT the chromium subprocess, so the page, cookies, local-storage, and currently-open dropdowns/dialogs all persist across steps. Never spawn a second local browser.
+
+    ## Web Task Rules
+
+    - Do not guess UI interactions. Use printed evidence from the current run.
+    - Some required filters or options may be hidden behind expandable sections, drawers, dropdowns, or mobile filter panels. Open those controls and inspect again before deciding a filter is unavailable.
+    - A broad search query does not satisfy explicit filter constraints when the site exposes dedicated controls.
+    - Save final verification screenshots inside the active `final_runs/run_<id>/screenshots/` folder.
+    - Print concise ARIA snapshots, URLs, titles, visible labels, and any extracted state needed for the next step.
+
+    ## Task Success Criteria
+
+    1. Filtered results must be displayed correctly. Missing selection, missing confirmation, or no visible effect = failure.
+    2. Specific filter conditions ("best," "highest," "cheapest," "latest," "lowest," etc.) must be applied using the filter/sort function.
+    3. Requirements must be applied through filters, not embedded in a broad search query.
+    4. Numeric ranges (money, years, beds/baths) must exactly match the task requirement — no broadening or narrowing.
+    5. Tasks requiring a submission action or results display need that action to be taken.
+    6. Empty results are OK if the correct action was performed.
+    7. All explicit filters must use site controls when those controls exist.
+    8. If a site control does not exist, verify the constraint directly from page content.
+
+    ## Image QA Tool
+
+    - Use image_qa during exploration to inspect screenshots and verify UI state:
+      `python -m webwright.tools.image_qa --workspace-dir "{{ workspace_dir }}" --image screenshots/example.png --question "inspect prompt"`
+    - Use multiple `--image` flags for combined visual verification.
+    - image_qa returns JSON with `answer`, `evidence`, `unknown`, and `confidence` fields.
+
+    ## Recommended Workflow
+
+    0. **Bootstrap persistent local Chromium** (run ONCE before any Playwright):
+       ```
+       python -m webwright.tools.persistent_local_browser \
+         --workspace-dir "{{ workspace_dir }}" create --out .lb_session.json
+       ```
+       This spawns a detached headless Chromium subprocess and writes
+       `.lb_session.json` (`id`, `pid`, `connectUrl`, `userDataDir`). All
+       Playwright scripts below must `connect_over_cdp` to that
+       `connectUrl` and end with `await browser.close()` (CDP-only close —
+       the chromium subprocess keeps running for the next step).
+
+    1. **Planning**: Parse the task into a list of critical points — every explicit constraint, filter, sort, selection, or datum that must be satisfied. Write them to `plan.md` as a checklist:
+       ```
+       # Critical Points
+       - [ ] CP1: <description of constraint/filter/action>
+       - [ ] CP2: <description of constraint/filter/action>
+       ...
+       ```
+       Each critical point must be independently verifiable from a screenshot or log entry.
+
+    2. **Author judge_config.json (once)**: Write `{{ workspace_dir }}/judge_config.json` containing only the four prompts (`image_judge_system_prompt`, `image_judge_user_prompt`, `final_verdict_system_prompt`, `final_verdict_user_prompt`) for `webwright.tools.self_reflection`. Embed the full critical-point list from `plan.md` and the task description into the user prompts, but keep the prompts generic — this file is reused verbatim for every `self_reflection` invocation, so do NOT hard-code a specific run id, screenshot filename, or `final_script_log.txt` content.
+
+    3. **Exploration**: Inspect `task.json`, drive the persistent local Chromium across MULTIPLE short bash steps. Each step attaches via `connect_over_cdp(SESSION["connectUrl"])`, does one focused interaction, and ends with `await browser.close()` so page state, cookies, and any opened drawer/dropdown are preserved for the next step. Use `image_qa` during exploration to verify UI state.
+
+    4. **Final script**: Write `final_script.py`, run it once in a new `final_runs/run_<id>/` folder. The script must also attach to the persistent local Chromium via `.lb_session.json` (do NOT spawn a fresh chromium) and produce screenshots and action logs as described in **Final Script Instrumentation**.
+
+    5. **Run self_reflection**: Execute `python -m webwright.tools.self_reflection --config judge_config.json --workspace-dir "{{ workspace_dir }}" --output final_runs/run_<id>/judge_result.json`. The tool auto-attaches every screenshot in the latest `final_runs/run_*/screenshots/` folder (default `--auto-latest-run final_runs`) — you do NOT pass an image list. If the tool exits non-zero or `predicted_label != 1`, diagnose the specific issue, fix `final_script.py`, re-run it in a new `final_runs/run_<id+1>/` folder, and re-invoke `self_reflection` against the new run. Do NOT edit `judge_config.json` between attempts.
+
+    6. **Release the persistent local Chromium** (REQUIRED before declaring done): run
+       `python -m webwright.tools.persistent_local_browser --workspace-dir
+       "{{ workspace_dir }}" release --session-file .lb_session.json --delete-file
+       --delete-user-data` in its own bash step. Verify
+       `{{ workspace_dir }}/.lb_session.json` no longer exists. Skipping this leaves
+       a zombie Chromium subprocess and the completion gate will reject `done: true`.
+
+    7. **Declare done**: Set `"done": true` ONLY after `self_reflection` exits 0,
+       `judge_result.json` reports `"predicted_label": 1` for the latest run, AND
+       the persistent local Chromium has been released and `.lb_session.json` deleted.
+       The external judge reads that same `judge_result.json` as the final verdict.
+       Declaring done in any other state is a failure.
+
+    ## Final Script Instrumentation
+
+    `final_script.py` must:
+    - be stored as `final_runs/run_<id>/final_script.py`
+    - attach to the persistent local Chromium via `.lb_session.json` (`connect_over_cdp(SESSION["connectUrl"])`) and end with `await browser.close()` — never launch a fresh chromium, never call `playwright.chromium.launch(...)`.
+    - save critical-point screenshots as `final_runs/run_<id>/screenshots/final_execution_<step_number>_<action>.png`
+    - create or reset `final_runs/run_<id>/final_script_log.txt` at the start of each clean run
+    - write `step <step_number> action: <reason and action description>` to the log for every interaction you did, or intermediate result/observation you need to save. And end the log with a single `Final Response: <answer text>` line when the task asks for a final datum
+    - each screenshot should correspond to a critical point from `plan.md` so that `self_reflection` can verify it
+
+    This instrumentation is mandatory because both `self_reflection` and the external judge evaluate those screenshots and action logs.
+
+    ## Completion Gate
+
+    Set `"done": true` ONLY if ALL of the following are true:
+    1. `plan.md` exists with all critical points identified.
+    2. `judge_config.json` exists with all four prompts populated for `self_reflection`.
+    3. `final_script.py` was run from scratch in a `final_runs/run_<id>/` folder.
+    4. `python -m webwright.tools.self_reflection --config judge_config.json --workspace-dir "{{ workspace_dir }}" --output final_runs/run_<id>/judge_result.json` was executed against that run, exited 0, and wrote `final_runs/run_<id>/judge_result.json` with `"predicted_label": 1`.
+    5. `ls -R final_runs/run_<id>` and `cat final_runs/run_<id>/final_script_log.txt` confirm the expected artifacts.
+    6. The persistent local Chromium has been released via the CLI and `{{ workspace_dir }}/.lb_session.json` no longer exists.
+
+    Do NOT declare done if `self_reflection` exits non-zero, if `predicted_label` is not 1, if the run folder is missing, if required screenshots are missing, if `self_reflection` has not been run against the latest `final_runs/run_<id>/`, or if the persistent local Chromium has not been released.
+    </instructions>

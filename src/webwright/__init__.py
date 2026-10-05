@@ -1,50 +1,90 @@
-"""Compatibility namespace sharing CUAWright's browser module objects."""
+from __future__ import annotations
 
-import importlib
-import importlib.abc
-import importlib.util
-import sys
+from pkgutil import extend_path
 
-from cuawright.webwright import *
-from cuawright import webwright as _web
+__path__ = extend_path(__path__, __name__)
 
-__path__ = _web.__path__
-__version__ = _web.__version__
+import os
+from pathlib import Path
+from typing import Any, Protocol
 
+try:
+    import dotenv
+except ModuleNotFoundError:
+    class _DotenvShim:
+        @staticmethod
+        def load_dotenv(*args, **kwargs):
+            return False
+    dotenv = _DotenvShim()
+try:
+    from platformdirs import user_config_dir
+except ModuleNotFoundError:
+    def user_config_dir(appname: str) -> str:
+        return str(Path.home() / ".config" / appname)
 
-class _BrowserAliasLoader(importlib.abc.Loader):
-    def __init__(self, target):
-        self.target = target
-        self.target_spec = importlib.util.find_spec(target)
+__version__ = "0.2.0"
 
-    def create_module(self, spec):
-        return importlib.import_module(self.target)
-
-    def exec_module(self, module):
-        # Keep the canonical spec intact when import machinery installs the alias.
-        module.__spec__ = self.target_spec
-
-    def get_filename(self, fullname):
-        return self.target_spec.origin
-
-    def get_code(self, fullname):
-        # Support legacy `python -m webwright.<module>` invocations.
-        return self.target_spec.loader.get_code(self.target)
-
-
-class _BrowserAliasFinder(importlib.abc.MetaPathFinder):
-    def find_spec(self, fullname, path=None, target=None):
-        if not fullname.startswith("webwright."):
-            return None
-        canonical = "cuawright.webwright." + fullname[len("webwright.") :]
-        loader = _BrowserAliasLoader(canonical)
-        if loader.target_spec is None:
-            return None
-        return importlib.util.spec_from_loader(
-            fullname,
-            loader,
-            is_package=loader.target_spec.submodule_search_locations is not None,
-        )
+package_dir = Path(__file__).resolve().parent
+global_config_dir = Path(
+    os.getenv("MSWEBA_GLOBAL_CONFIG_DIR") or user_config_dir("webwright")
+)
+global_config_dir.mkdir(parents=True, exist_ok=True)
+global_config_file = global_config_dir / ".env"
+dotenv.load_dotenv(dotenv_path=global_config_file)
 
 
-sys.meta_path.insert(0, _BrowserAliasFinder())
+class Model(Protocol):
+    config: Any
+
+    def __call__(self, messages: list[dict[str, Any]], **kwargs) -> str: ...
+
+    def query(self, messages: list[dict[str, Any]], **kwargs) -> dict[str, Any]: ...
+
+    def format_message(self, **kwargs) -> dict[str, Any]: ...
+
+    def format_observation_messages(
+        self,
+        message: dict[str, Any],
+        outputs: list[dict[str, Any]],
+        template_vars: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]: ...
+
+    def get_template_vars(self, **kwargs) -> dict[str, Any]: ...
+
+    def serialize(self) -> dict[str, Any]: ...
+
+
+class Environment(Protocol):
+    config: Any
+
+    def prepare(self, **kwargs) -> None: ...
+
+    def execute(self, action: dict[str, Any], cwd: str = "") -> dict[str, Any]: ...
+
+    def get_template_vars(self, **kwargs) -> dict[str, Any]: ...
+
+    def serialize(self) -> dict[str, Any]: ...
+
+    def close(self) -> None: ...
+
+
+class Agent(Protocol):
+    config: Any
+
+    def run(self, task: str, **kwargs) -> dict[str, Any]: ...
+
+    def save(self, path: Path | None, *extra_dicts) -> dict[str, Any]: ...
+
+
+__all__ = [
+    "Agent",
+    "Environment",
+    "Model",
+    "__version__",
+    "global_config_dir",
+    "global_config_file",
+    "package_dir",
+]
+
+# Optional learning extension retains legacy imports when installed.
+from . import _optional

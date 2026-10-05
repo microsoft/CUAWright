@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from cuawright.webwright.models.openai_model import (
+from cuawright.models.openai_model import (
     RUN_COMMAND_TOOL,
     TOOL_RESPONSE_MODE,
     OpenAIModel,
@@ -232,7 +232,7 @@ class TestObservationTagging:
 
 
 def test_tool_query_execute_observe_and_complete(monkeypatch, tmp_path):
-    from cuawright.webwright.environments.local_workspace import LocalWorkspaceEnvironment
+    from cuawright.environments.local_workspace import LocalWorkspaceEnvironment
     model = _model(observation_template='Exit={{ observation.returncode }}\n{{ observation.command_output }}')
     responses = iter([_payload(_reasoning(), _call('{"command":"printf hello"}')),
                       _payload(_message('Final Response: hello'))])
@@ -258,8 +258,8 @@ def test_tool_query_execute_observe_and_complete(monkeypatch, tmp_path):
 
 
 def test_new_config_renders_and_uses_browserbase(monkeypatch):
-    from cuawright.webwright.config import get_config_from_spec
-    from cuawright.webwright.utils.serialize import recursive_merge
+    from cuawright.config import get_config_from_spec
+    from cuawright.utils.serialize import recursive_merge
     from jinja2 import Template, StrictUndefined
     for name, mode in [('best_default_judge_json_persistent_cli.yaml', 'run_command_tool')]:
         config = recursive_merge(get_config_from_spec(name), get_config_from_spec('model_openai.yaml'))
@@ -268,7 +268,7 @@ def test_new_config_renders_and_uses_browserbase(monkeypatch):
         assert config['environment']['browser_mode'] == 'browserbase'
         assert config['agent']['trajectory_reflection_config'] == 'judge_config.json'
         prompt = Template(config['agent']['system_template'], undefined=StrictUndefined).render(workspace_dir='/tmp/task', start_url='https://example.test')
-        assert 'cuawright.webwright.tools.image_read' in prompt
+        assert 'cuawright.tools.image_read' in prompt
         assert '--scope trajectory' in prompt
         assert '/home/luyadong' not in prompt
 
@@ -276,8 +276,8 @@ def test_new_config_renders_and_uses_browserbase(monkeypatch):
 @pytest.mark.parametrize("mode", [TOOL_RESPONSE_MODE, "json_schema"])
 def test_base_prompt_matches_response_mode(mode):
     from jinja2 import StrictUndefined, Template
-    from cuawright.webwright.config import get_config_from_spec
-    from cuawright.webwright.utils.serialize import recursive_merge
+    from cuawright.config import get_config_from_spec
+    from cuawright.utils.serialize import recursive_merge
 
     config = recursive_merge(get_config_from_spec("base.yaml"), get_config_from_spec("model_openai.yaml"))
     model = OpenAIModel(openai_api_key="key", response_mode=mode)

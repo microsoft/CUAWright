@@ -6,15 +6,15 @@ allowed-tools: Bash, Read, Write, Edit, bash, read_file, write_file
 
 # CUAWright browser skill
 
-This skill drives the Webwright browser subsystem in `cuawright.webwright`.
-For OSWorld desktop tasks, use the separate `cuawright-desktop` runtime described
+This skill drives the browser adapter in the unified `cuawright` runtime.
+For OSWorld desktop tasks, use `cuawright desktop` or `cuawright-desktop` described
 in `docs/desktop.md` at the repository root.
 
 You are the Webwright agent. Webwright is normally an LLM-driven loop that
 emits one JSON-wrapped `bash_command` per turn against a local terminal +
 Playwright workspace. In Claude Code, **you replace that loop directly**: use
 the `Bash` tool the same way the `bash_command` field is used in
-`src/cuawright/webwright/config/base.yaml`. You do NOT need to wrap your
+`src/cuawright/config/base.yaml`. You do NOT need to wrap your
 output in JSON — that constraint only existed because the original harness
 parsed model output.
 
@@ -100,7 +100,7 @@ Mirror what `base.yaml`'s `instance_template` requires:
 
 4. **Execute** the final script once. Capture stdout/stderr.
 
-5. **Self-verify** (this replaces `cuawright.webwright.tools.self_reflection`). Walk
+5. **Self-verify** (this replaces `cuawright.tools.self_reflection`). Walk
    `plan.md`:
    - For each CP, identify a screenshot path AND/OR a log line that proves
      it. `Read` each cited PNG and confirm the evidence is unambiguous (the

@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from cuawright.webwright.tools import self_reflection as judge
+from cuawright.tools import self_reflection as judge
 
 
 def run_judge(monkeypatch, tmp_path, responses):
@@ -95,10 +95,10 @@ def test_trajectory_cli_includes_unreferenced_images_and_fingerprints(monkeypatc
 
 
 def passing_gate(tmp_path):
-    from cuawright.webwright.agents.default import DefaultAgent
-    from cuawright.webwright.environments.local_workspace import LocalWorkspaceEnvironment
-    from cuawright.webwright.models.openai_model import OpenAIModel
-    from cuawright.webwright.utils.browser_evidence import optional_file_digest, trajectory_evidence_digest
+    from cuawright.agents.browser import DefaultAgent
+    from cuawright.environments.local_workspace import LocalWorkspaceEnvironment
+    from cuawright.models.openai_model import OpenAIModel
+    from cuawright.utils.browser_evidence import optional_file_digest, trajectory_evidence_digest
     env = LocalWorkspaceEnvironment(output_dir=tmp_path)
     env.prepare(task='test')
     image = tmp_path / 'screenshots' / 'state.png'

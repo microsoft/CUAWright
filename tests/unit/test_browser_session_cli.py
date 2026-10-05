@@ -11,7 +11,7 @@ def _run_cli(workspace: Path, *args: str, code: str = "") -> subprocess.Complete
         [
             sys.executable,
             "-m",
-            "cuawright.webwright.tools.browser_session",
+            "cuawright.tools.browser_session",
             *args,
             "--workspace-dir",
             str(workspace),
@@ -101,7 +101,7 @@ def test_persistent_cli_keeps_new_tab_across_processes_and_screenshots_are_opt_i
 def test_browserbase_persistent_resource_uses_keepalive_and_release(monkeypatch, tmp_path):
     import asyncio
     import httpx
-    from cuawright.webwright.tools import browser_session as session
+    from cuawright.tools import browser_session as session
     monkeypatch.setenv('BROWSERBASE_API_KEY', 'test-key')
     monkeypatch.setenv('BROWSERBASE_PROJECT_ID', 'test-project')
     requests = []
@@ -135,7 +135,7 @@ def test_browserbase_persistent_resource_uses_keepalive_and_release(monkeypatch,
 
 
 def test_backend_uses_workspace_browser_mode(monkeypatch):
-    from cuawright.webwright.tools.browser_session import _resolve_backend
+    from cuawright.tools.browser_session import _resolve_backend
     monkeypatch.delenv('WEBWRIGHT_BROWSER_BACKEND', raising=False)
     monkeypatch.setenv('BROWSER_MODE', 'browserbase')
     assert _resolve_backend(None) == 'browserbase'

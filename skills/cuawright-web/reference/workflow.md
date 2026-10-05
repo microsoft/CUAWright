@@ -1,8 +1,8 @@
 # Workflow
 
 Detailed expansion of the six-step Webwright loop, adapted for Claude Code.
-The original loop relied on `cuawright.webwright.tools.image_qa` for visual QA and
-`cuawright.webwright.tools.self_reflection` for the final verdict. Both are replaced
+The original loop relied on `cuawright.tools.image_qa` for visual QA and
+`cuawright.tools.self_reflection` for the final verdict. Both are replaced
 here by your native abilities (`Read` on PNG files + reasoning against
 `plan.md`). No `OPENAI_API_KEY` is required.
 

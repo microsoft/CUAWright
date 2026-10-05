@@ -1,13 +1,13 @@
 import pytest
 import yaml
 
-from cuawright.webwright.config import get_config_from_spec
-from cuawright.webwright.tools._model_config import (
+from cuawright.config import get_config_from_spec
+from cuawright.tools._model_config import (
     DEFAULT_MERGED_CONFIG_RELPATH,
     _extract_model_block,
     resolve_model_config_path,
 )
-from cuawright.webwright.utils.serialize import recursive_merge
+from cuawright.utils.serialize import recursive_merge
 
 
 def test_model_claude_sets_top_level_anthropic_model() -> None:

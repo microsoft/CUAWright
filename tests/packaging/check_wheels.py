@@ -30,35 +30,47 @@ def main():
             "-I",
             "-c",
             "import importlib.util; "
-            "from cuawright.webwright.run.cli import app; "
-            "from cuawright.desktop.run.cli import parser; "
-            "assert importlib.util.find_spec('cuawright.webwright.skill_factory') is None; "
-            "assert importlib.util.find_spec('cuawright.webwright.tools.skill_use') is None",
+            "from cuawright.run.browser import app; "
+            "from cuawright.run.desktop import parser; "
+            "import webwright.agents.default as legacy; "
+            "import cuawright.agents.browser as current; "
+            "assert legacy is not current; "
+            "assert importlib.util.find_spec('cuawright.skill_factory') is None; "
+            "assert importlib.util.find_spec('cuawright.tools.skill_use') is None",
         )
-        run("-I", "-m", "cuawright.webwright.run.cli", "--help")
-        run("-I", "-m", "cuawright.desktop", "--help")
+        run("-I", "-m", "cuawright.run.browser", "--help")
+        run("-I", "-m", "cuawright", "--help")
+        run("-I", "-m", "cuawright", "desktop", "--help")
+        run("-I", "-m", "cuawright", "web", "--help")
+        run("-I", "-m", "webwright.run.cli", "--help")
         run("-m", "pip", "install", str(extension))
         run(
             "-I",
             "-c",
-            "import cuawright.webwright.skill_factory as current; "
+            "import cuawright.skill_factory as current; "
             "import webwright.skill_factory as legacy; "
-            "from cuawright.webwright.tools.skill_use import recommend; "
-            "from cuawright.webwright.skill_factory.library import Library; "
+            "from cuawright.tools.skill_use import recommend; "
+            "from cuawright.skill_factory.library import Library; "
             "assert current is legacy; "
-            "assert Library('.') is not None",
+            "assert Library('.') is not None; "
+            "from cuawright.utils.artifacts import harness_provenance; "
+            "assert harness_provenance()['runtime']['files'] > 0",
         )
-        run("-I", "-m", "cuawright.webwright.skill_factory", "--help")
+        run("-I", "-m", "cuawright.skill_factory", "--help")
+        run("-I", "-m", "webwright.skill_factory", "--help")
         run("-m", "pip", "uninstall", "-y", "cuawright-skill-factory")
         run(
             "-I",
             "-c",
             "import importlib.util; "
-            "assert importlib.util.find_spec('cuawright.webwright.skill_factory') is None; "
-            "assert importlib.util.find_spec('cuawright.webwright.tools.skill_use') is None",
+            "assert importlib.util.find_spec('cuawright.skill_factory') is None; "
+            "assert importlib.util.find_spec('cuawright.tools.skill_use') is None",
         )
-        run("-I", "-m", "cuawright.webwright.run.cli", "--help")
-        run("-I", "-m", "cuawright.desktop", "--help")
+        run("-I", "-m", "cuawright.run.browser", "--help")
+        run("-I", "-m", "cuawright", "--help")
+        run("-I", "-m", "cuawright", "desktop", "--help")
+        run("-I", "-m", "cuawright", "web", "--help")
+        run("-I", "-m", "webwright.run.cli", "--help")
         print(
             "Base install, optional extension, legacy imports, and uninstall verified."
         )

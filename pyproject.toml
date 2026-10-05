@@ -28,16 +28,17 @@ test = ["pytest>=8", "black==25.1.0"]
 build = ["build>=1", "wheel"]
 
 [project.scripts]
-cuawright-web = "cuawright.webwright.run.cli:app"
-cuawright-desktop = "cuawright.desktop.run.cli:main"
-webwright = "cuawright.webwright.run.cli:app"
+cuawright = "cuawright.run.cli:main"
+cuawright-web = "cuawright.run.browser:app"
+cuawright-desktop = "cuawright.run.desktop:main"
+webwright = "webwright.run.cli:app"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-"cuawright.webwright" = ["config/*.yaml", "config/**/*.yaml"]
-"cuawright.desktop" = ["build_provenance.json"]
+"cuawright" = ["config/*.yaml", "config/**/*.yaml", "build_provenance.json"]
+"webwright" = ["config/*.yaml", "config/**/*.yaml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "release/osworld/tests"]

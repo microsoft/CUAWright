@@ -4,9 +4,9 @@ import base64
 import json
 from pathlib import Path
 
-from cuawright.webwright.environments.local_workspace import LocalWorkspaceEnvironment
-from cuawright.webwright.models.openai_model import OpenAIModel
-from cuawright.webwright.tools.image_read import MAX_IMAGE_READ_BYTES, image_read_descriptor, main
+from cuawright.environments.local_workspace import LocalWorkspaceEnvironment
+from cuawright.models.openai_model import OpenAIModel
+from cuawright.tools.image_read import MAX_IMAGE_READ_BYTES, image_read_descriptor, main
 
 _TINY_PNG = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO0pL1sAAAAASUVORK5CYII="
@@ -79,7 +79,7 @@ def test_local_workspace_brokers_only_standalone_image_read(tmp_path: Path) -> N
     image = workspace / "screenshots" / "state.png"
     image.write_bytes(_TINY_PNG)
 
-    result = env.execute({"bash_command": f'python -m cuawright.webwright.tools.image_read --path "{image}"'})
+    result = env.execute({"bash_command": f'python -m cuawright.tools.image_read --path "{image}"'})
 
     assert result["returncode"] == 0
     assert len(result["observation"]["image_attachments"]) == 1
@@ -87,7 +87,7 @@ def test_local_workspace_brokers_only_standalone_image_read(tmp_path: Path) -> N
     assert attachment["path"] == str(image)
     assert attachment["media_type"] == "image/png"
 
-    combined = env.execute({"bash_command": f'python -m cuawright.webwright.tools.image_read --path "{image}" | cat'})
+    combined = env.execute({"bash_command": f'python -m cuawright.tools.image_read --path "{image}" | cat'})
     assert combined["returncode"] == 0
     assert combined["observation"]["image_attachments"] == []
 

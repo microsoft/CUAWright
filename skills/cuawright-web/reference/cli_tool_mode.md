@@ -6,7 +6,7 @@ provided. **CLI tool mode** (`/cuawright:craft`) instead produces a
 **reusable, parameterized CLI tool**: the same script can be re-run later
 with different argument values to perform the same kind of task.
 
-This mode is adapted from `src/cuawright/webwright/config/crafted_cli.yaml`'s
+This mode is adapted from `src/cuawright/config/crafted_cli.yaml`'s
 "Final-Script Shape (CLI Tool, MANDATORY)" contract. The OpenAI-backed
 `self_reflection` gate is replaced by your own self-verification against
 `plan.md`.

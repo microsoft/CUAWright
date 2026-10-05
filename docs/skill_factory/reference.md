@@ -1,6 +1,6 @@
 # Reference — verification, parameters, components
 
-[← back to the module README](../../extensions/skill-factory/src/cuawright/webwright/skill_factory/README.md)
+[← back to the module README](../../extensions/skill-factory/src/cuawright/skill_factory/README.md)
 
 ## Verification and grades
 
@@ -54,9 +54,9 @@ Why code even at `reference` grade, versus a natural-language note: the selector
 shapes are verbatim-copyable into the agent's next script, individual primitives often still run
 when the whole skill doesn't, and a reference skill is one repair away from executable. And a
 prior alone pulls its weight: the WebArena numbers in
-[Results](../../extensions/skill-factory/src/cuawright/webwright/skill_factory/README.md#-results) come from a library the agent read
+[Results](../../extensions/skill-factory/src/cuawright/skill_factory/README.md#-results) come from a library the agent read
 exactly this way. The flights skill in the
-[Quick Start](../../extensions/skill-factory/src/cuawright/webwright/skill_factory/README.md#-quick-start), by contrast, reruns an
+[Quick Start](../../extensions/skill-factory/src/cuawright/skill_factory/README.md#-quick-start), by contrast, reruns an
 unseen route standalone, which is what `executable` buys.
 
 ## All parameters
@@ -68,7 +68,7 @@ solve for you. **Manual mode** is `update`: you hand it a manifest and state all
  
 ### Quick mode
  
-#### `python -m cuawright.webwright.skill_factory init "<need>"`
+#### `python -m cuawright.skill_factory init "<need>"`
  
 | flag | default | meaning |
 |---|---|---|
@@ -78,7 +78,7 @@ solve for you. **Manual mode** is `update`: you hand it a manifest and state all
 One LLM call. Drafts the template, the `start_url` (a guess, check it), and the verify mode it
 judges the task needs. Never the values.
  
-#### `python -m cuawright.webwright.skill_factory build <spec.yaml>`
+#### `python -m cuawright.skill_factory build <spec.yaml>`
  
 Solves the spec's instances, then hands them to `learn`. Everything in the spec's `build:` block
 can be overridden here; machine-specific things are flags only, so the spec stays committable.
@@ -97,7 +97,7 @@ On `--jobs`: the ceiling is the site, not the flag. Too many browsers from one I
 throttled, which reads as your solves failing; 3 to 5 is safe. With N > 1 each solve goes to
 `build_outputs/solve_NN.log` and progress ticks every 30 s.
  
-#### `python -m cuawright.webwright.skill_factory learn <runs_dir>`
+#### `python -m cuawright.skill_factory learn <runs_dir>`
  
 | flag | default | meaning |
 |---|---|---|
@@ -112,7 +112,7 @@ throttled, which reads as your solves failing; 3 to 5 is safe. With N > 1 each s
  
 ### Manual mode
  
-#### `python -m cuawright.webwright.skill_factory.update`
+#### `python -m cuawright.skill_factory.update`
  
 The manifest-driven path (see [manual.md](manual.md)). Use it when you're assembling batches by
 hand rather than from a spec.
@@ -125,7 +125,7 @@ hand rather than from a spec.
  
 ### Solve time
 
-#### `python -m cuawright.webwright.skill_factory route`
+#### `python -m cuawright.skill_factory route`
 
 Route a task out of the agent loop: `recommend` decides `run`/`adapt`/`skip`, then `route` acts on
 it — runs a matching executable skill directly (no model), or hands the task to the agent with the
@@ -141,7 +141,7 @@ Without `--start-url` it only prints the decision (and still runs a directly-run
 | `-o` / `--out`, `--task-id` | `.` / `route_task` | output dir and task id for a launched solve |
 | `--json` | off | print the raw outcome as JSON |
 
-#### `python -m cuawright.webwright.tools.skill_use`
+#### `python -m cuawright.tools.skill_use`
 
 The `recommend` decision on its own — retrieve + judge → `{verdict, skill_id, source_path,
 how_to_reuse}`, doing nothing else. Ranking is local; the verdict is one LLM round trip on the
@@ -174,7 +174,7 @@ else already reads `OPENAI_*`; if you don't care, set only `OPENAI_*`.
 
 Set neither of those and you get that class's own fallbacks, `gpt-4o` at `https://api.openai.com/v1/responses`,
 and a line on stderr saying so. Those are inherited defaults, not suggestions: the
-[Results](../../extensions/skill-factory/src/cuawright/webwright/skill_factory/README.md#-results) ran on a much newer model, and
+[Results](../../extensions/skill-factory/src/cuawright/skill_factory/README.md#-results) ran on a much newer model, and
 every skill in your library is written by whichever one you leave it on. Name it.
 
 **The agent's model reads none of these vars**; nothing outside `llm.py` does. On a custom

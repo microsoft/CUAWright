@@ -8,7 +8,7 @@ import pytest
 
 @pytest.mark.parametrize(
     "module",
-    ["cuawright.webwright.run.cli", "webwright.run.cli", "cuawright.desktop"],
+    ["cuawright.run.browser", "webwright.run.cli", "cuawright"],
 )
 def test_public_module_help(module):
     result = subprocess.run(
@@ -22,13 +22,13 @@ def test_public_module_help(module):
 
 
 def test_legacy_image_command_remains_brokered():
-    from cuawright.webwright.environments.local_workspace import (
+    from cuawright.environments.local_workspace import (
         LocalWorkspaceEnvironment,
     )
 
     for module in (
         "webwright.tools.image_read",
-        "cuawright.webwright.tools.image_read",
+        "cuawright.tools.image_read",
     ):
         assert (
             LocalWorkspaceEnvironment._image_read_path(
@@ -44,12 +44,11 @@ def test_legacy_image_command_remains_brokered():
         )
 
 
-def test_legacy_imports_share_classes_and_modules():
-    import webwright.exceptions as legacy_exceptions
-    import cuawright.webwright.exceptions as exceptions
-    import webwright.agents.default as legacy_agent
-    import cuawright.webwright.agents.default as agent
+def test_legacy_runtime_is_retained_independently():
+    from pathlib import Path
+    import webwright.agents.default as legacy
+    import cuawright.agents.browser as current
 
-    assert legacy_exceptions is exceptions
-    assert legacy_exceptions.FormatError is exceptions.FormatError
-    assert legacy_agent is agent
+    assert legacy is not current
+    assert "webwright/agents/default.py" in Path(legacy.__file__).as_posix()
+    assert "cuawright/agents/browser.py" in Path(current.__file__).as_posix()

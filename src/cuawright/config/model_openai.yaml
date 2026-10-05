@@ -1,0 +1,14 @@
+# Model modifier — OpenAI variant.
+#
+# Stack on top of base.yaml:
+#   python -m cuawright.run.browser -c base.yaml -c model_openai.yaml ...
+#
+# Required env: OPENAI_API_KEY (also used by image_qa / self_reflection tools).
+
+model:
+  model_class: openai
+  # Native tool responses preserve encrypted reasoning between turns.
+  # Legacy response_mode: json_schema is deprecated.
+  response_mode: run_command_tool
+  model_name: gpt-5.4
+  openai_endpoint: https://api.openai.com/v1/responses

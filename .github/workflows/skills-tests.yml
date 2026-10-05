@@ -17,5 +17,5 @@ jobs:
       - name: wrapper usage check (F6)
         run: |
           set +e
-          bash extensions/skill-factory/src/cuawright/webwright/skill_factory/examples/solve_with_library.sh > /dev/null 2>&1
+          bash extensions/skill-factory/src/cuawright/skill_factory/examples/solve_with_library.sh > /dev/null 2>&1
           [ $? -eq 1 ] && echo "usage-exit OK" || { echo "wrapper must exit 1 on missing args"; exit 1; }

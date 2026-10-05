@@ -1,0 +1,12 @@
+# Model modifier — OpenRouter chat completions variant.
+#
+# Stack on top of base.yaml or local_browser.yaml:
+#   python -m webwright.run.cli -c base.yaml -c model_openrouter.yaml ...
+#   python -m webwright.run.cli -c base.yaml -c local_browser.yaml -c model_openrouter.yaml ...
+#
+# Required env: OPENROUTER_API_KEY.
+
+model:
+  model_class: openrouter
+  model_name: openai/gpt-5.4
+  openrouter_endpoint: https://openrouter.ai/api/v1/chat/completions

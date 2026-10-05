@@ -19,15 +19,15 @@ ROOT = Path(__file__).resolve().parents[3]
 if os.environ.get("CUAWRIGHT_TEST_INSTALLED") != "1":
     sys.path.insert(0, str(ROOT / "src"))
 
-from cuawright.desktop import exceptions
-from cuawright.desktop.agents import default as actor
-from cuawright.desktop.config import prompts
-from cuawright.desktop.environments.osworld import guest_tools as guest
-from cuawright.desktop.models.utils import (
-    actions_toolcall_response as protocol,
+from cuawright import exceptions
+from cuawright.agents import desktop as actor
+from cuawright.config.desktop import prompts
+from cuawright.environments.desktop import guest_tools as guest
+from cuawright.tools import (
+    terminal as protocol,
 )
-from cuawright.desktop.run.benchmarks import osworld as runner
-from cuawright.desktop.utils import artifacts as storage
+from cuawright.run.benchmarks import osworld as runner
+from cuawright.utils import artifacts as storage
 
 
 @pytest.fixture

@@ -6,7 +6,7 @@ model says so instead of silently distilling on the class's built-in default.
 """
 import pytest
 
-import cuawright.webwright.skill_factory.llm as L
+import cuawright.skill_factory.llm as L
 
 
 class _FakeCfg:
