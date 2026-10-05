@@ -3,7 +3,7 @@ multiple solves (n_solves >= 3) with real lifted parameters — not a single-sol
 import json
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2] / "src/webwright/skill_factory/examples/learned_library"
+ROOT = Path(__file__).resolve().parents[2] / "extensions/skill-factory/src/cuawright/skill_factory/examples/learned_library"
 
 
 def run():
@@ -16,7 +16,7 @@ def run():
         assert len(params) >= 2, f"{d.name}: parameters must be lifted, got {params}"
         assert "{{" in meta["template"], "template must have {{param}} placeholders"
         assert "Additionally, write" not in meta["template"], "pipeline text must not leak (F7)"
-        extras = {f.name for f in d.iterdir()} - {"skill.py", "meta.json", "replays.json"}
+        extras = {f.name for f in d.iterdir()} - {"skill.py", "meta.json", "replays.json", "__pycache__"}
         assert not extras, f"{d.name}: run artifacts must not be committed: {extras}"
         code = (d / "skill.py").read_text()
         compile(code, d.name, "exec")

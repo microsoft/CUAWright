@@ -1,0 +1,52 @@
+<svg width="1800" height="900" viewBox="0 0 1800 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="softShadow" x="0" y="0" width="1800" height="900" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#061A4D" flood-opacity="0.08"/>
+    </filter>
+    <style>
+      .navy { stroke: #061A4D; fill: #061A4D; }
+      .blue { stroke: #3F6FF1; fill: #3F6FF1; }
+      .window-stroke { stroke: #061A4D; stroke-width: 14; stroke-linecap: round; stroke-linejoin: round; fill: white; }
+      .term-stroke { stroke: #061A4D; stroke-width: 16; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .globe-stroke { stroke: #3F6FF1; stroke-width: 12; stroke-linecap: round; stroke-linejoin: round; fill: white; }
+      .wordmark {
+        font-family: "Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif;
+        font-size: 175px;
+        font-weight: 800;
+        letter-spacing: 0;
+        fill: #000000;
+      }
+    </style>
+  </defs>
+
+  <rect width="1800" height="900" fill="white"/>
+
+  <g filter="url(#softShadow)">
+    <g transform="translate(120 318)">
+      <path class="window-stroke" d="M22 46C22 23.9 39.9 6 62 6H338C360.1 6 378 23.9 378 46V264"/>
+      <path class="window-stroke" d="M22 58V270C22 292.1 39.9 310 62 310H250"/>
+      <line x1="22" y1="78" x2="378" y2="78" class="window-stroke"/>
+
+      <circle cx="72" cy="38" r="13" fill="#FF4D37"/>
+      <circle cx="120" cy="38" r="13" fill="#FFB020"/>
+      <circle cx="168" cy="38" r="13" fill="#33C24D"/>
+
+      <path d="M88 150L132 194L88 238" class="term-stroke"/>
+      <line x1="170" y1="230" x2="224" y2="230" class="term-stroke"/>
+
+      <g transform="translate(240 174)">
+        <circle cx="90" cy="90" r="82" class="globe-stroke"/>
+        <ellipse cx="90" cy="90" rx="34" ry="82" class="globe-stroke"/>
+        <path d="M8 90H172" class="globe-stroke"/>
+        <path d="M22 52H158" class="globe-stroke"/>
+        <path d="M22 128H158" class="globe-stroke"/>
+      </g>
+    </g>
+
+    <g transform="translate(590 545)">
+      <text class="wordmark" x="0" y="0">CUAWright</text>
+    </g>
+  </g>
+  <circle cx="1280" cy="423" r="34" fill="#FFFFFF"/>
+  <circle cx="1280" cy="430" r="17" fill="#3F6FF1"/>
+</svg>

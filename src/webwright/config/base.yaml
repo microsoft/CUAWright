@@ -205,7 +205,7 @@ agent:
       ```
 
     ## Rules
-    - **Always Avoid taking full page screenshot using Playwright, use viewport 1280x1800 ** (exploration, debugging, and final-run screenshots alike). Never do `page.screenshot(full_page=True)`. 
+    - **Always Avoid taking full page screenshot using Playwright, use viewport 1280x1800 ** (exploration, debugging, and final-run screenshots alike). Never do `page.screenshot(full_page=True)`.
     - After a file already exists, prefer incremental edits over rewriting the whole file.
     - Use stable selectors and current-run evidence.
     - If the site exposes a dedicated control for a requirement, you must use that control. Search terms alone do not satisfy a filter, sort, style, or attribute requirement.

@@ -5,11 +5,11 @@ import tempfile
 
 import importlib
 
-from webwright.skill_factory.library import Library, Skill
+from cuawright.skill_factory.library import Library, Skill
 
-# the package re-exports the `decide` FUNCTION as webwright.skill_factory.decide, shadowing the
+# the package re-exports the `decide` FUNCTION as cuawright.skill_factory.decide, shadowing the
 # submodule; import the module object explicitly so monkeypatching promote's globals works.
-DEC = importlib.import_module("webwright.skill_factory.decide")
+DEC = importlib.import_module("cuawright.skill_factory.decide")
 
 
 def _skill(grade, params=("origin_code", "destination_code", "date"),
@@ -55,9 +55,9 @@ def test_promote_executable_fits_and_fills_is_run(monkeypatch):
 # ---- recommend: integration, grade-honest guidance ------------------------------------------
 
 def _wire(monkeypatch, lib, decision):
-    import webwright.tools.skill_use as T
-    from webwright.skill_factory.retrieve import Candidate
-    from webwright.skill_factory.decide import Decision
+    import cuawright.tools.skill_use as T
+    from cuawright.skill_factory.retrieve import Candidate
+    from cuawright.skill_factory.decide import Decision
     monkeypatch.setattr(T, "retrieve", lambda task, l: [Candidate(lib.get("flt"), 0.9, "stub")])
     monkeypatch.setattr(T, "decide", lambda task, cands: Decision(*decision))
     return T

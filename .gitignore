@@ -8,3 +8,10 @@ outputs/
 venv/
 runs/
 /library/
+
+build/
+dist/
+release/osworld/.scratch/
+release/osworld/dist/
+
+.wheel-env/

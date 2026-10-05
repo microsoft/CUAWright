@@ -100,7 +100,12 @@ class LocalWorkspaceEnvironment:
             argv = shlex.split(command, comments=False, posix=True)
         except ValueError:
             return None
-        if len(argv) != 5 or argv[:4] != ["python", "-m", "webwright.tools.image_read", "--path"]:
+        if (
+            len(argv) != 5
+            or argv[:2] != ["python", "-m"]
+            or argv[2] not in {"webwright.tools.image_read", "webwright.tools.image_read"}
+            or argv[3] != "--path"
+        ):
             return None
         return argv[4]
 

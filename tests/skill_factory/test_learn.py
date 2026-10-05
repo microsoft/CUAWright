@@ -1,7 +1,7 @@
 """Unit test: learn's LLM-free plumbing (schema inference, run collection, ledger skip)."""
 import json, tempfile
 from pathlib import Path
-from webwright.skill_factory.learn import infer_schema, collect_runs
+from cuawright.skill_factory.learn import infer_schema, collect_runs
 
 
 def run():
@@ -38,7 +38,7 @@ def run_status_gate():
     gate (status read from agent_response.json), even when the answer is well-formed.
     All runs rejected -> learn returns before any LLM call, so this stays offline."""
     import contextlib, io, json, tempfile
-    from webwright.skill_factory.learn import learn
+    from cuawright.skill_factory.learn import learn
     with tempfile.TemporaryDirectory() as td:
         run = Path(td) / "runs" / "r1_20260711_000000"
         run.mkdir(parents=True)
@@ -60,7 +60,7 @@ def run_status_gate():
 
 def run_regressions():
     """F3: grouping-LLM failure must exit with an actionable one-liner, not a traceback."""
-    import webwright.skill_factory.learn as L
+    import cuawright.skill_factory.learn as L
     orig = L.llm_json
     L.llm_json = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("401 unauthorized"))
     try:
@@ -80,7 +80,7 @@ def run_reject_ledger():
     """A rejected skill must NOT mark its runs as learned (they get another chance)."""
     import contextlib, io, json, tempfile
     from unittest import mock
-    import webwright.skill_factory.learn as L
+    import cuawright.skill_factory.learn as L
     with tempfile.TemporaryDirectory() as td:
         run = Path(td) / "runs" / "r1_x"
         run.mkdir(parents=True)

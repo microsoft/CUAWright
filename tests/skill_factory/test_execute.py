@@ -2,7 +2,7 @@
 failure. A fake skill stands in for the browser-driving body so the test is fast and offline."""
 from pathlib import Path
 
-from webwright.skill_factory.execute import run_skill
+from cuawright.skill_factory.execute import run_skill
 
 # Reads taskspec.json (as replay/the shim feed it) and writes agent_response.json — the contract
 # every real skill honours. Behaviour is switched by the params so one file covers every branch.

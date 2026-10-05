@@ -7,7 +7,7 @@ skill file, so the fallback path (run -> observable failure -> agent) is exercis
 offline and deterministically — no mock of the executor, no browser, no LLM."""
 import textwrap
 
-from webwright.skill_factory import route as R
+from cuawright.skill_factory import route as R
 
 
 def _rec(**kw):

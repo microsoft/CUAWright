@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from webwright.utils.browser_evidence import (
+from cuawright.utils.browser_evidence import (
     append_jsonl,
     format_action_history,
     load_browser_steps,

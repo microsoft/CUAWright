@@ -4,9 +4,9 @@ import json
 import sys, tempfile
 from pathlib import Path
 pass
-from webwright.skill_factory.library import Library, Skill
-from webwright.skill_factory.retrieve import retrieve, Candidate
-from webwright.skill_factory.decide import decide, Decision
+from cuawright.skill_factory.library import Library, Skill
+from cuawright.skill_factory.retrieve import retrieve, Candidate
+from cuawright.skill_factory.decide import decide, Decision
 
 
 def _lib(d):
@@ -36,7 +36,7 @@ def run():
 
         # skill_use.recommend: a decision pointing OUTSIDE the retrieved candidates (LLM
         # hallucination — even an id that exists in the library) must downgrade to skip
-        import webwright.tools.skill_use as T
+        import cuawright.tools.skill_use as T
         orig_retrieve, orig_decide = T.retrieve, T.decide
         try:
             T.retrieve = lambda task, lib: [Candidate(lib.get("bestsellers"), 0.9, "stub")]
@@ -54,8 +54,8 @@ def run():
     # with_skill_hint resolves the lookup OUT of the agent loop and injects the RESULT, not a
     # command. Mock recommend to pin the three behaviours.
     import os
-    from webwright.skill_factory.prompt import with_skill_hint
-    import webwright.tools.skill_use as SU
+    from cuawright.skill_factory.prompt import with_skill_hint
+    import cuawright.tools.skill_use as SU
     orig = SU.recommend
     try:
         # a useful skill -> its id + source + guidance are prepended, before the task
@@ -79,7 +79,7 @@ def run():
         SU.recommend = orig
 
     # recommend on a MISSING or EMPTY library -> loud skip with a warning (and no mkdir side effect)
-    import webwright.tools.skill_use as T2
+    import cuawright.tools.skill_use as T2
     r = T2.recommend("anything", "/nonexistent/skill/lib/path")
     assert r["verdict"] == "skip" and "warning" in r and "empty" in r["warning"], r
     assert not os.path.exists("/nonexistent/skill/lib/path"), "must not mkdir a bogus path"
@@ -89,7 +89,7 @@ def run():
 
     # F1: a hard failure inside recommend must surface as an ERROR (loud), not a quiet skip
     import io, contextlib
-    import webwright.tools.skill_use as TU
+    import cuawright.tools.skill_use as TU
     orig_rec = TU.recommend
     TU.recommend = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom 401"))
     try:

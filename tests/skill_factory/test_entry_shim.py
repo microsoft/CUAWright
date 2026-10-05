@@ -7,7 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from webwright.skill_factory.entry_shim import cli_shim_src, prepend_cli_shim
+from cuawright.skill_factory.entry_shim import cli_shim_src, prepend_cli_shim
 
 PARAMS = ["origin_city", "origin_code", "destination_code", "date"]
 

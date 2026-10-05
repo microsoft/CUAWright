@@ -1,6 +1,6 @@
 # Manual mode — manifests, gold gates, full control
 
-[← back to the module README](../../src/webwright/skill_factory/README.md)
+[← back to the module README](../../extensions/skill-factory/src/cuawright/skill_factory/README.md)
 
 ## When to use this mode
 
@@ -38,7 +38,7 @@ instruction to the task so it does (the manifest in step 2 reads it):
 ANSWER_SPEC='Additionally, write the final answer into $WORKSPACE_DIR/agent_response.json
 as {"retrieved_data": <the answer, as a JSON list>}.'
 
-python -m webwright.run.cli main \
+python -m cuawright.run.browser main \
   -t "How many commits did kilian make to a11yproject on 3/1/2023? $ANSWER_SPEC" \
   --task-id t132_a --start-url http://gitlab.example.com -o outputs \
   -c base.yaml -c model_openai.yaml
@@ -90,7 +90,7 @@ Assembling it programmatically from a gold set is shown end-to-end in step 6.
 
 ```bash
 export OPENAI_API_KEY=...
-python -m webwright.skill_factory.update --manifest batch.json --library ./library --verify strict
+python -m cuawright.skill_factory.update --manifest batch.json --library ./library --verify strict
 ```
 
 `update` defaults to `--verify off` (a skill would land `unverified`), so pass `--verify strict`
@@ -104,9 +104,9 @@ batches any time; batches may mix templates.
 > skip this. It's the manual wiring for when you drive Webwright runs yourself.
 
 ```python
-from webwright.skill_factory import with_skill_hint
+from cuawright.skill_factory import with_skill_hint
 prompt = with_skill_hint(prompt, task=task_text, library="/abs/path/to/library")
-# then: python -m webwright.run.cli main -t "$prompt" ...
+# then: python -m cuawright.run.browser main -t "$prompt" ...
 ```
 
 `with_skill_hint` resolves the library lookup out of the agent loop (the `recommend` decision:
@@ -143,7 +143,7 @@ as {"retrieved_data": <the answer, as a JSON list>}.'
 
 # 1) solve every instance (add xargs -P N or & to parallelize)
 jq -c '.[]' tasks.json | while read -r row; do
-  python -m webwright.run.cli main -t "$(jq -r .task <<<"$row") $ANSWER_SPEC" \
+  python -m cuawright.run.browser main -t "$(jq -r .task <<<"$row") $ANSWER_SPEC" \
     --task-id "$(jq -r .id <<<"$row")" --start-url "$START_URL" -o outputs \
     -c base.yaml -c model_openai.yaml
 done
@@ -166,13 +166,13 @@ print(sum(r["admit"] for r in runs), "of", len(runs), "admitted")
 PY
 
 # 3) evolve the library (strict replay so skills land executable)
-python -m webwright.skill_factory.update --manifest batch.json --library ./library --verify strict
+python -m cuawright.skill_factory.update --manifest batch.json --library ./library --verify strict
 
 # 4) solve a NEW instance WITH the library
 TASK="How many commits did byte make to empathy-prompts on 4/2/2023?"
-PROMPT=$(python -c 'import sys; from webwright.skill_factory import with_skill_hint
+PROMPT=$(python -c 'import sys; from cuawright.skill_factory import with_skill_hint
 print(with_skill_hint(sys.argv[1], task=sys.argv[1], library="./library"))' "$TASK")
-python -m webwright.run.cli main -t "$PROMPT" \
+python -m cuawright.run.browser main -t "$PROMPT" \
   --task-id t132_new --start-url "$START_URL" -o outputs -c base.yaml -c model_openai.yaml
 ```
 

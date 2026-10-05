@@ -1,6 +1,6 @@
 """Slot filling edges: fill_params never invents, coerces blanks to None, and degrades safely on
 a malformed model reply. The LLM is stubbed; these pin the plumbing around it."""
-import webwright.skill_factory.fill as F
+import cuawright.skill_factory.fill as F
 
 
 def test_no_param_names_returns_empty_without_calling_the_model(monkeypatch):

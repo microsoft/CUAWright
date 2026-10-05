@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from pkgutil import extend_path
+
+__path__ = extend_path(__path__, __name__)
+
 import os
 from pathlib import Path
 from typing import Any, Protocol
@@ -18,7 +22,7 @@ except ModuleNotFoundError:
     def user_config_dir(appname: str) -> str:
         return str(Path.home() / ".config" / appname)
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 package_dir = Path(__file__).resolve().parent
 global_config_dir = Path(
@@ -81,3 +85,6 @@ __all__ = [
     "global_config_file",
     "package_dir",
 ]
+
+# Optional learning extension retains legacy imports when installed.
+from . import _optional

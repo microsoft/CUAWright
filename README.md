@@ -1,48 +1,86 @@
-# Webwright
+# CUAWright
+
+> **Webwright is now CUAWright.** Browser and desktop agents share the runtime
+> under `src/cuawright`. Use `cuawright web` or `cuawright desktop`, or the existing
+> `cuawright-web` and `cuawright-desktop` commands.
+> The legacy browser implementation stays under `src/webwright` to preserve
+> existing `webwright` commands, Python imports, and configurations.
 
 <p align="center">
-  <img src="assets/webwright_logo.svg" alt="Webwright logo" width="320">
+  <img src="assets/cuawright_logo.svg" alt="CUAWright logo" width="320">
 </p>
 
-<p align="center"><b>Turn Your Coding Models to Be State-of-the-art Browser Agents</b></p>
+<p align="center"><b>Turn coding models into browser and desktop agents</b></p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-%E2%89%A53.10-blue?logo=python&logoColor=white" alt="Python">
   <img src="https://img.shields.io/badge/playwright-chromium-green" alt="Playwright">
   <img src="https://img.shields.io/badge/backends-OpenAI%20%7C%20Anthropic%20%7C%20OpenRouter-orange" alt="Backends">
-  <img src="https://img.shields.io/badge/footprint-%E2%89%A4~1.5k%20LoC-brightgreen" alt="Footprint">
 </p>
 
 - 📝 **Blog:** [Webwright: A Terminal Is All You Need For Web Agents](https://www.microsoft.com/en-us/research/articles/webwright-a-terminal-is-all-you-need-for-web-agents/)
 - 🌐 **Project Page:** [microsoft.github.io/Webwright](https://microsoft.github.io/Webwright/)
+
+CUAWright combines **Webwright browser automation** and a **persistent desktop Actor** for official OSWorld-V2 tasks.
+
+Browser and desktop adapters share scheduling, model-call accounting, and
+Responses request helpers in `cuawright`. The retained `webwright` package provides
+backward compatibility. See [runtime architecture](docs/architecture.md).
+
+| Command | Runtime |
+| --- | --- |
+| `cuawright-web` | Browser tasks with Playwright and the Webwright harness |
+| `cuawright-desktop` | One official OSWorld-V2 Linux task on Ubuntu via Docker |
+| `cuawright web` / `cuawright desktop` | Unified command with backend selection |
+| `webwright` | Retained legacy browser runtime |
+
+```bash
+pip install -e .
+playwright install chromium
+cuawright-web main -c base.yaml -c model_openai.yaml -t "<task>" --start-url "<url>"
+```
+
+For desktop support, use Python 3.12+ and `pip install -e ".[desktop]"`.
+See [Desktop Quick Start](#-desktop-quick-start) for a runnable command and
+[desktop setup and execution](docs/desktop.md) for external provisioning.
+The Python runtime is `cuawright`; existing `webwright` imports and module
+entrypoints use the retained legacy implementation.
+Browser configuration and profile locations remain compatible with Webwright.
+Skill Factory is a [separately installed optional extension](#-skill-factory-turn-solved-tasks-into-runnable-code-skills); normal browser and desktop runs do not require it.
+
+The browser sections below describe the inherited Webwright capabilities and results.
 
 Webwright gives LLM a terminal where it can launch multiple browser sessions to inspect the page and complete a web task. It captures and inspects page screenshots/states only when needed. It enforces each web task to be completed end-to-end within a re-runnable Python script, i.e. your web agent browsing history is a single code file. No multi-agent system, no graph engine, no plugin layer, no hidden orchestration — just a terminal, a browser, and a model.
 
 For incremental browsing with native OpenAI `run_command` tool calls, use:
 
 ```bash
-webwright -c best_default_judge_json_persistent_cli.yaml -c model_openai.yaml \
+cuawright-web main -c best_default_judge_json_persistent_cli.yaml -c model_openai.yaml \
   -t "<task>" --start-url "<url>" --task-id example -o outputs/example
 ```
 
 This config keeps a Browserbase cloud session across commands (requires
 `BROWSERBASE_API_KEY` and `BROWSERBASE_PROJECT_ID`), attaches saved images
-through `python -m webwright.tools.image_read --path /absolute/workspace/image.png`,
+through `python -m cuawright.tools.image_read --path /absolute/workspace/image.png`,
 and uses `self_reflection --scope trajectory` to judge all task screenshots.
 Each turn is one shell tool call or a plain text completion answer. Reasoning and
 tool results are replayed across turns; history compaction disables tool execution.
 Existing script-based configs remain available. Self-reflection rejects incomplete
 image judgments and retries malformed final verdicts.
 
-Already got your favorite agents, and wonder how to make Claude Code, Codex, Hermes, OpenClaw more capable in browser tasks? Consider adding [Webwright plugin/skills](#-use-as-a-claude-code-skill)!
+Already got your favorite agents, and wonder how to make Claude Code, Codex, Hermes, OpenClaw more capable in browser tasks? Consider adding [CUAWright browser plugin/skill](#-use-as-a-plugin)!
 
 ---
 
 ## 📰 News
-- **2026-09-01** — We did several optmization (add persistent step by step solve mode, remove explict output thinking block, and use run_command tool call etc) further boost performance: OM2W -> 88.1% and Odssey --> 77.5%
-- **2026-07-21** — Skill Factory: every solve leaves a script behind, distilled into reusable, verified, parameterized code skills that rerun standalone with no model (~40 s, zero tokens). On WebArena, reuse lifts held-out accuracy 55% → 70% (+15 pp). See [Skill Factory](#-skill-factory-turn-solved-tasks-into-runnable-code-skills).
+
+- **2026-10-04** — **Unified CUAWright runtime:** browser and desktop adapters now share the `agents`, `config`, `environments`, `models`, and `run` structure under `src/cuawright`, including loop scheduling, budget accounting, and Responses helpers. Added `cuawright web` and `cuawright desktop`; the legacy runtime remains under `src/webwright`. Skill Factory stays optional.
+
+- **2026-10-03** — **Webwright → CUAWright:** renamed the project to bring browser and desktop agents together. The Webwright browser runtime is now `cuawright`, with `cuawright-web` as its command. Added `cuawright-desktop` for official OSWorld-V2 Linux tasks on Ubuntu via Docker. Existing `webwright` commands and imports remain compatible. The legacy browser implementation remains available for backward compatibility. See [desktop setup](docs/desktop.md).
+- **2026-09-01** — Persistent step-by-step browsing and native `run_command` tool calls improve performance to **88.1% on Online-Mind2Web** and **77.5% on Odysseys**.
+- **2026-07-21** — Skill Factory: every solve leaves a script behind, distilled into reusable, verified, parameterized code skills that rerun standalone with no model (~40 s, zero tokens). On WebArena, reuse lifts held-out accuracy 55% → 70% (+15 pp). See the optional [Skill Factory](#-skill-factory-turn-solved-tasks-into-runnable-code-skills).
 - **2026-05-11** — Support Task2UI mode: Webwright completes the task and renders task results into an HTML-based web app you can easily view and reuse.  
-- **2026-05-06** — Codex and Claude Code plugin manifests added; install via `/plugin install webwright@webwright`. OpenClaw and Hermes Agent integrations shipped; the same `skills/webwright/` folder now loads across Claude Code, Codex, OpenClaw, and Hermes.
+- **2026-05-06** — Codex and Claude Code plugin manifests added; install via `/plugin install cuawright@cuawright`. OpenClaw and Hermes Agent integrations shipped; the same `skills/cuawright-web/` folder now loads across Claude Code, Codex, OpenClaw, and Hermes.
 - **2026-05-04** — Initial public release: ~1.5k LoC, OpenAI / Anthropic / OpenRouter backends, Playwright environment.
 
 ---
@@ -68,7 +106,7 @@ Webwright takes a different stance: **separate the agent from the browser**, and
 
 Most web agent frameworks bury the actual agent loop under layers of abstractions. Webwright takes the opposite stance:
 
-- 🪶 **Lightweight by design** — core agent loop in a single ~450-line file, Playwright environment in ~570 lines, CLI in ~150 lines.
+- 🪶 **Readable core** — browser agent loop, environments, models, and CLI are separate modules under `src/cuawright/`.
 - 🧩 **Pluggable model backends** — OpenAI, Anthropic, and OpenRouter, each ~150–200 lines.
 - 🔍 **Zero hidden frameworks** — just `httpx`, `pydantic`, `playwright`, and `typer`.
 - 🔁 **Flat prompt → observe → execute script loop** — readable end-to-end, easy to debug, easy to fork.
@@ -119,25 +157,58 @@ State-of-the-art on two real-website benchmarks with a 100-step budget — see t
 
 ## 🗺️ Project Map
 
+```text
+CUAWright/
+├── pyproject.toml                      # base package, optional extras, commands
+├── setup.py                            # unified runtime provenance for releases
+├── src/
+│   ├── cuawright/                      # canonical browser + desktop runtime
+│   │   ├── agents/
+│   │   │   ├── default.py             # shared loop scheduler and call budget
+│   │   │   ├── browser.py             # browser messages, reflection, compaction
+│   │   │   └── desktop.py             # desktop messages, submission, compaction
+│   │   ├── config/                    # browser YAML; desktop/prompts.py
+│   │   ├── environments/              # local browser/workspace; desktop/ guest bridge
+│   │   ├── models/                    # provider backends, SDK adapter, Responses helpers
+│   │   ├── run/                       # unified CLI, browser/desktop runners, doctor
+│   │   │   └── benchmarks/osworld/     # official source checks, setup, evaluation
+│   │   ├── tools/                     # browser tools and terminal result contracts
+│   │   └── utils/                     # evidence, serialization, artifacts, provenance
+│   └── webwright/                     # retained legacy browser code and configs
+├── extensions/skill-factory/           # separately installed optional distribution
+│   ├── pyproject.toml
+│   └── src/cuawright/                 # skill_factory/ and tools/skill_use.py
+├── skills/cuawright-web/               # host-agent browser skill and guides
+├── .claude-plugin/                     # Claude Code plugin manifests
+├── .codex-plugin/                      # Codex plugin manifest
+├── docs/                               # architecture, desktop, Skill Factory guides
+├── tests/                              # browser, shared runtime, compatibility, packaging
+├── release/osworld/tests/              # desktop lifecycle, request, privacy regression tests
+├── .github/workflows/                  # runtime and optional extension CI
+├── assets/                             # showcase, figures, viewer, logos
+├── LICENSE                             # MIT browser license
+├── NOTICE                              # imported desktop attribution
+└── licenses/OSWorld-runtime-APACHE-2.0.txt
 ```
-webwright/
-├── pyproject.toml           # package: webwright
-├── src/webwright/
-│   ├── run/cli.py           # CLI entrypoint (`webwright`)
-│   ├── agents/default.py    # core agent loop
-│   ├── environments/        # Playwright browser workspace
-│   ├── tools/               # image_qa, self_reflection
-│   ├── models/              # openai_model, anthropic_model, base
-│   ├── config/              # base.yaml, model_openai.yaml, model_claude.yaml
-│   └── utils/
-├── assets/
-│   └── task_showcase/       # tiny Flask dashboard for repeatable runs
-│       ├── app.py
-│       ├── templates/       # dashboard.html, task.html
-│       └── tasks/<short_id>/ # task.json + report.json per task
-├── tests/
-└── outputs/                 # run artifacts (trajectories, screenshots)
-```
+
+The new runtime shares infrastructure while retaining environment-specific prompts,
+completion checks, and model transports. The legacy browser copy remains separate
+for backward compatibility; see [architecture and migration](docs/architecture.md).
+
+
+Physical Python line counts (including comments and blank lines; YAML, docs, and
+assets excluded):
+
+| Code area | Python files | Lines |
+| --- | ---: | ---: |
+| Unified `src/cuawright/` runtime | 51 | 8,336 |
+| Retained `src/webwright/` compatibility runtime | 30 | 6,291 |
+| Base wheel total | 81 | 14,627 |
+| Optional Skill Factory, including examples | 21 | 3,808 |
+| Tests, including desktop release tests | 26 | 4,482 |
+
+The retained browser copy accounts for the increase in packaged lines. Sharing
+folders and loop infrastructure does not remove browser tools or their behavior.
 
 ---
 
@@ -160,7 +231,7 @@ To have Webwright produce a renderer-ready task folder at runtime, stack the
 Task Showcase overlay:
 
 ```bash
-python -m webwright.run.cli \
+python -m cuawright.run.browser main \
     -c base.yaml -c model_openai.yaml -c task_showcase.yaml \
     -t "<repeatable web task>" \
     --task-id my_repeatable_task \
@@ -184,8 +255,24 @@ python assets/task_showcase/app.py \
 
 ## 🧠 Skill Factory (turn solved tasks into runnable code skills)
 
+**Optional browser extension.** Browser and desktop execution do not require
+Skill Factory. Enable it only when you want to learn or reuse a library of browser
+automation scripts. It is separate from the host-agent plugin in `skills/`.
+The base `cuawright` wheel excludes Skill Factory and its examples. Install the
+companion package from this checkout to enable it:
+
+```bash
+pip install -e ".[skill-factory]" -e extensions/skill-factory
+cuawright-skill-factory --help
+```
+
+For desktop execution and Skill Factory together, use
+`pip install -e ".[desktop,skill-factory]" -e extensions/skill-factory`.
+The import path is `cuawright.skill_factory`; learning and reuse
+run only when you invoke them explicitly.
+
 **Most agent skills are context the model reads. Ours are programs.**
-[`webwright.skill_factory`](src/webwright/skill_factory/) distills the script every solve leaves
+[`cuawright.skill_factory`](extensions/skill-factory/src/cuawright/skill_factory/) distills the script every solve leaves
 behind into a growing library of **reusable, verified, parameterized skills** — code you can run
 without a model and compose into the next task instead of re-exploring the site. Plugs in with
 **no change to the agent loop**:
@@ -194,7 +281,7 @@ without a model and compose into the next task instead of re-exploring the site.
   `route` either runs a matching skill directly (no model) or injects it into the prompt as a prior
   (`{verdict: run|adapt|skip, skill_id, source_path}`); the agent reuses the hint without ever
   querying the library itself.
-- **Grow** — afterwards, `python -m webwright.skill_factory learn outputs/ --library ./library`
+- **Grow** — afterwards, `python -m cuawright.skill_factory learn outputs/ --library ./library`
   groups solves of the same template and distills one parameterized skill (`build` does solve→learn
   in one shot; `update` is manual-manifest mode).
 
@@ -204,11 +291,11 @@ poison the library. New solves widen a skill in place, regression-replayed so ol
 
 Once learned, a skill **runs standalone in ~40 s with zero tokens**. On WebArena (10 retrieve-type
 templates, 3 self-hosted sites, gpt-5.4) reuse lifts held-out accuracy **55% → 70% (+15 pp)** while
-cutting steps. See [`src/webwright/skill_factory/README.md`](src/webwright/skill_factory/README.md).
+cutting steps. See [`extensions/skill-factory/src/cuawright/skill_factory/README.md`](extensions/skill-factory/src/cuawright/skill_factory/README.md).
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Browser Quick Start
 
 ### Prerequisites
 
@@ -231,7 +318,7 @@ with `model_openai.yaml` or `ANTHROPIC_API_KEY` with `model_claude.yaml`). The
 so an Anthropic run does not require an OpenAI key. Then:
 
 ```bash
-python -m webwright.run.cli \
+python -m cuawright.run.browser main \
     -c base.yaml -c model_openai.yaml \
     -t "Search for flights from SEA to JFK on 2026-08-15 to 2026-08-20" \
     --start-url https://www.google.com/flights \
@@ -243,7 +330,7 @@ python -m webwright.run.cli \
 
 | Flag | Description |
 |------|-------------|
-| `-c` | Config file(s) from `src/webwright/config/` (stackable). |
+| `-c` | Config file(s) from `src/cuawright/config/` (stackable). |
 | `-t` | Task instruction. |
 | `--start-url` | Initial page. |
 | `--task-id` | Output subfolder name. |
@@ -251,9 +338,62 @@ python -m webwright.run.cli \
 
 ---
 
+## 🖥️ Desktop Quick Start
+
+`cuawright-desktop` drives an Ubuntu desktop through a persistent terminal Actor.
+It can inspect application state, run shell commands and automation, read screenshots,
+ask the task's simulated user for missing information, and submit the saved result
+for official evaluation. Desktop tasks currently run through the OSWorld-V2 adapter;
+this release does not connect to an arbitrary personal desktop.
+
+### Requirements and installation
+
+- **Python 3.12+** and a Responses-compatible model API key.
+- A clean external **OSWorld-V2 v2026.08.08** checkout at commit
+  `d578d2d4e0dc82b43e270fdaa7fa89d9708cd154`, with its dependencies installed in the same interpreter.
+- Docker, a pre-provisioned Ubuntu VM, official Linux V2 tasks and assets, and any
+  websites or proxies required by the selected task.
+
+```bash
+pip install -e ".[desktop]"
+cuawright-desktop --help
+```
+
+The installer does not download VM images, tasks, or assets. Put the API key in a
+user-owned file with mode `0600`, outside source, task, asset, and result directories.
+Choose a new result directory whose parent already exists.
+
+### Run one desktop task
+
+```bash
+cuawright-desktop \
+  --source /absolute/path/to/OSWorld-V2 \
+  --tasks /absolute/path/to/tasks \
+  --assets /absolute/path/to/assets \
+  --vm /absolute/path/to/Ubuntu.qcow2 \
+  --credentials /absolute/path/to/api-key \
+  --results /absolute/path/to/results/task-001 \
+  --task-id 001 --model YOUR_MODEL --reasoning high
+```
+
+Use `--base-url` for your own Responses-compatible endpoint and `--proxy-config`
+for tasks that request a proxy. The default budget is 300 model calls with context
+compaction every 40 calls; multi-phase tasks share the same budget and VM state.
+
+Runs save `manifest.json`, `trace.jsonl`, `result.json`, and screenshot evidence.
+Submitting triggers official evaluation. Setup, transport, evaluation, persistence,
+and cleanup failures are explicit; credentials, evaluator payloads, and custom API
+endpoints are excluded from public settings and diagnostics.
+See [desktop setup and execution](docs/desktop.md) for the full contract.
+
+---
+
 ## 🔌 Use as a Plugin
 
-Webwright ships plugin manifests for both [Claude Code](https://docs.claude.com/en/docs/claude-code/plugins) ([`.claude-plugin/plugin.json`](.claude-plugin/plugin.json)) and [OpenAI Codex](https://developers.openai.com/codex/plugins) ([`.codex-plugin/plugin.json`](.codex-plugin/plugin.json)), with the shared skill at [`skills/webwright/`](skills/webwright/) and slash commands at [`skills/webwright/commands/`](skills/webwright/commands/). The host agent drives the Webwright loop natively — no extra LLM API key or cost beyond your host subscription. Hosts that read PNG screenshots natively skip the `image_qa` / `self_reflection` tools.
+CUAWright ships plugin manifests for both [Claude Code](https://docs.claude.com/en/docs/claude-code/plugins) ([`.claude-plugin/plugin.json`](.claude-plugin/plugin.json)) and [OpenAI Codex](https://developers.openai.com/codex/plugins) ([`.codex-plugin/plugin.json`](.codex-plugin/plugin.json)), with the shared skill at [`skills/cuawright-web/`](skills/cuawright-web/) and slash commands at [`skills/cuawright-web/commands/`](skills/cuawright-web/commands/). The host agent drives the Webwright loop natively — no extra LLM API key or cost beyond your host subscription. Hosts that read PNG screenshots natively skip the `image_qa` / `self_reflection` tools.
+
+The bundled `cuawright-web` skill handles browser tasks. Desktop tasks use
+`cuawright-desktop`; see [desktop setup](docs/desktop.md).
 
 Common runtime deps (install once after either path):
 
@@ -274,14 +414,14 @@ Install through the bundled marketplace inside Claude Code:
 /plugin marketplace add microsoft/Webwright
 
 # 2. Install the plugin from that marketplace
-/plugin install webwright@webwright
+/plugin install cuawright@cuawright
 ```
 
 Prefer a local checkout? Point the marketplace command at the cloned repo instead:
 
 ```text
 /plugin marketplace add /absolute/path/to/Webwright
-/plugin install webwright@webwright
+/plugin install cuawright@cuawright
 ```
 
 ### Use
@@ -291,12 +431,12 @@ Prefer a local checkout? Point the marketplace command at the cloned repo instea
 You can either ask Claude Code in plain English (the skill auto-activates from its description), or use one of the slash commands:
 
 ```
-/webwright:run search Google Flights for flights from SEA to JFK on 2026-08-15 to 2026-08-20
-/webwright:craft search a ticket on Google Flights from LAX to SFO depart June 7 return June 14
+/cuawright:run search Google Flights for flights from SEA to JFK on 2026-08-15 to 2026-08-20
+/cuawright:craft search a ticket on Google Flights from LAX to SFO depart June 7 return June 14
 ```
 
-- `/webwright:run` (or any plain prompt) produces a **one-shot** `final_script.py` for the literal task values.
-- `/webwright:craft` produces a **reusable CLI tool**: `final_script.py` becomes one parameterized function with a Google-style `Args:` docstring and an `argparse` wrapper whose flags default to the concrete task values, so you can rerun it later with different arguments — e.g. `python final_script.py --origin JFK --destination LAX --depart-date 2026-07-01`.
+- `/cuawright:run` (or any plain prompt) produces a **one-shot** `final_script.py` for the literal task values.
+- `/cuawright:craft` produces a **reusable CLI tool**: `final_script.py` becomes one parameterized function with a Google-style `Args:` docstring and an `argparse` wrapper whose flags default to the concrete task values, so you can rerun it later with different arguments — e.g. `python final_script.py --origin JFK --destination LAX --depart-date 2026-07-01`.
 
 In both modes Claude Code scaffolds a workspace with `plan.md`, runs instrumented Playwright scripts under `final_runs/run_<id>/`, and visually self-verifies each critical point against the saved screenshots.
 
@@ -313,7 +453,7 @@ Codex reads Claude-style marketplaces, so the same repo works as a Codex plugin 
 # 1. Add this repo as a Codex plugin marketplace
 codex plugin marketplace add microsoft/Webwright
 
-# 2. Open the plugin browser and install Webwright
+# 2. Open the plugin browser and install CUAWright
 codex
 /plugins
 ```
@@ -328,10 +468,10 @@ Then restart Codex so the new marketplace and plugin are picked up.
 
 ### Use
 
-In a new Codex thread, either ask in plain English (the skill auto-activates from its description) or invoke the bundled skill explicitly with `@webwright`:
+In a new Codex thread, either ask in plain English (the skill auto-activates from its description) or invoke the bundled skill explicitly with `@cuawright-web`:
 
 ```
-@webwright search Google Flights for flights from SEA to JFK on 2026-08-15 to 2026-08-20
+@cuawright-web search Google Flights for flights from SEA to JFK on 2026-08-15 to 2026-08-20
 ```
 
 Codex scaffolds a workspace with `plan.md`, runs instrumented Playwright scripts under `final_runs/run_<id>/`, and visually self-verifies each critical point against the saved screenshots.
@@ -355,15 +495,15 @@ openclaw gateway restart   # reload so the plugin and skill are picked up
 Verify:
 
 ```bash
-openclaw plugins list | grep webwright
-openclaw skills  list | grep webwright   # should show "✓ ready"
+openclaw plugins list | grep cuawright
+openclaw skills  list | grep cuawright   # should show "✓ ready"
 ```
 
 ### Use
 
-The `webwright` skill is now available to any OpenClaw agent surface (CLI, Telegram, etc.) — invoke it by asking the agent in natural language, or via the slash commands shipped under [`skills/webwright/commands/`](skills/webwright/commands/), e.g. `/webwright run <task>`.
+The `cuawright-web` skill is now available to any OpenClaw agent surface (CLI, Telegram, etc.) — invoke it by asking the agent in natural language, or via the slash commands shipped under [`skills/cuawright-web/commands/`](skills/cuawright-web/commands/), e.g. `/cuawright:run <task>`.
 
-To uninstall: `openclaw plugins uninstall webwright`.
+To uninstall: `openclaw plugins uninstall cuawright`.
 
 </details>
 
@@ -372,20 +512,20 @@ To uninstall: `openclaw plugins uninstall webwright`.
 
 ### Install
 
-[Hermes Agent](https://github.com/NousResearch/hermes-agent) is a [skills-compatible client](https://agentskills.io), so the same `skills/webwright/` folder loads as a Hermes skill. Symlink it into your Hermes user-skills directory:
+[Hermes Agent](https://github.com/NousResearch/hermes-agent) is a [skills-compatible client](https://agentskills.io), so the same `skills/cuawright-web/` folder loads as a Hermes skill. Symlink it into your Hermes user-skills directory:
 
 ```bash
 mkdir -p ~/.hermes/skills
-ln -sfn /absolute/path/to/Webwright/skills/webwright ~/.hermes/skills/webwright
+ln -sfn /absolute/path/to/Webwright/skills/cuawright-web ~/.hermes/skills/cuawright-web
 ```
 
 No Hermes-specific manifest is needed; only `SKILL.md` is loaded.
 
 ### Use
 
-Start Hermes (`hermes`) and ask it to drive a web task in natural language — the skill auto-activates from its description. You can also invoke it explicitly with `/webwright`.
+Start Hermes (`hermes`) and ask it to drive a web task in natural language — the skill auto-activates from its description. You can also invoke it explicitly with `/cuawright-web`.
 
-Note: the named subcommands shipped under [`skills/webwright/commands/`](skills/webwright/commands/) (`/webwright:run`, `/webwright:craft`) are a Claude Code / Codex convention and are inert in Hermes; the skill itself still works end-to-end.
+Note: the named subcommands shipped under [`skills/cuawright-web/commands/`](skills/cuawright-web/commands/) (`/cuawright:run`, `/cuawright:craft`) are a Claude Code / Codex convention and are inert in Hermes; the skill itself still works end-to-end.
 
 </details>
 

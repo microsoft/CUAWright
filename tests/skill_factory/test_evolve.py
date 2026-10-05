@@ -2,14 +2,14 @@
 import sys, tempfile
 from pathlib import Path
 pass
-import webwright.skill_factory.update as U
-from webwright.skill_factory.library import Library, Skill
+import cuawright.skill_factory.update as U
+from cuawright.skill_factory.library import Library, Skill
 
 
 def run():
     # stub _refine: deterministically "build/widen" a skill for the group's template
     def fake_refine(group, library, verify="off", rounds=2, on_fail="reject", draws=1):
-        from webwright.skill_factory.update import _slug
+        from cuawright.skill_factory.update import _slug
         sid = _slug(group[0].template)
         library.add(Skill(sid, f"# refined from {len(group)} solves\n",
                           {"template": group[0].template, "provenance": "test-refine"}))
@@ -132,7 +132,7 @@ def run():
     with tempfile.TemporaryDirectory() as d:
         lib = Library(d)
         # guard: a failed refine must NEVER overwrite an existing skill, even with on_fail=reference
-        from webwright.skill_factory.library import Skill as _Skill
+        from cuawright.skill_factory.library import Skill as _Skill
         sid = U._slug("verify template")
         lib.add(_Skill(sid, "GOOD OLD CODE", {"template": "verify template", "verified": True,
                                               "grade": "executable"}))
@@ -175,7 +175,7 @@ def run():
         log = U.evolve([t43b], lib, verify="strict")
         assert log["adapt_refined"], f"general refine passing old+new must land: {log}"
 
-    # update CLI smoke: -m webwright.skill_factory.update must not NameError on Path (regression)
+    # update CLI smoke: -m cuawright.skill_factory.update must not NameError on Path (regression)
     with tempfile.TemporaryDirectory() as d:
         mf = Path(d) / "m.json"
         mf.write_text(_json.dumps({"template": "T", "runs": []}))
@@ -197,8 +197,8 @@ def test_a_fresh_draw_lands_where_repairing_the_bad_one_would_not():
     """--draws is not --verify-rounds: rounds repair the SAME candidate, draws throw it away.
     A draw that is brittle all the way through must not sink the batch when a fresh one works."""
     import tempfile
-    import webwright.skill_factory.update as U
-    from webwright.skill_factory.library import Library
+    import cuawright.skill_factory.update as U
+    from cuawright.skill_factory.library import Library
 
     BAD = "import json,sys\njson.dump({'retrieved_data': ['wrong']}, open('agent_response.json','w'))\n"
     GOOD = "import json,sys\njson.dump({'retrieved_data': ['right']}, open('agent_response.json','w'))\n"
@@ -233,8 +233,8 @@ def test_every_skill_carries_a_grade_and_the_three_states_are_distinct():
     would claim we tested something we never looked at — and a missing field breaks the first
     caller that indexes it."""
     import tempfile
-    import webwright.skill_factory.update as U
-    from webwright.skill_factory.library import Library
+    import cuawright.skill_factory.update as U
+    from cuawright.skill_factory.library import Library
 
     GOOD = "import json\njson.dump({'retrieved_data': ['right']}, open('agent_response.json','w'))\n"
     BAD = "import sys\nsys.exit(1)\n"
@@ -265,14 +265,14 @@ def test_norm_folds_how_an_answer_is_written_not_what_it_says():
     """Real case that cost three solves: the page prints AS26, the agent wrote the label as
     "AS 26", and strict then rejected every skill that read the page correctly — no draw could
     ever have passed. Spacing is not a logic error."""
-    from webwright.skill_factory.update import _norm
+    from cuawright.skill_factory.update import _norm
     assert _norm(["AS26", "Alaska", "7:00 AM"]) == _norm(["AS 26", "Alaska", "7:00 AM"])
     assert _norm(["AS26", "Alaska", "7:00 AM"]) == _norm(["AS26", "alaska", "7:00AM"])
 
 
 def test_norm_still_fails_a_different_answer():
     """The folding must not buy leniency: strict is the same *answer*, not the same bytes."""
-    from webwright.skill_factory.update import _norm
+    from cuawright.skill_factory.update import _norm
     assert _norm(["AS26", "Alaska", "7:00 AM"]) != _norm(["AS27", "Alaska", "7:00 AM"])
     assert _norm(["AS26", "Alaska", "7:00 AM"]) != _norm(["AS26", "Alaska", "8:00 AM"])
 
@@ -280,20 +280,20 @@ def test_norm_still_fails_a_different_answer():
 def test_norm_still_catches_a_mangled_field():
     """The draw that prompted this returned "\\b 434" for "B6 434" — a regex-escape bug that
     normalization must not launder into a pass."""
-    from webwright.skill_factory.update import _norm
+    from cuawright.skill_factory.update import _norm
     assert _norm(["B6 434", "JetBlue", "6:00 AM"]) != _norm(["\b 434", "JetBlue", "6:00 AM"])
 
 
 def test_norm_keeps_folding_type_jitter():
     """The behaviour it had before: a solve answers in strings, a skill in numbers."""
-    from webwright.skill_factory.update import _norm
+    from cuawright.skill_factory.update import _norm
     assert _norm([5]) == _norm(["5"])
 
 
 # ---------------------------------------------------------------- material: lookups aren't methods
 
 def _trace(code, answer):
-    from webwright.skill_factory.update import Trace
+    from cuawright.skill_factory.update import Trace
     return Trace(template="t", code=code, answer=answer, meta={})
 
 
@@ -304,7 +304,7 @@ def test_a_solve_that_recognises_its_answer_is_not_material():
     Its answer is right, so the input gate passes it. But there is no method in it, and
     distillation — told never to copy instance values — has to invent one, so every draw fails
     replay on that instance."""
-    from webwright.skill_factory.update import _memorized_answer
+    from cuawright.skill_factory.update import _memorized_answer
     code = 'RESULT = ["UA 729", "United", "12:10 AM"]\nif "UA 729" in t: return "UA 729"'
     assert _memorized_answer(_trace(code, ["UA 729", "United", "12:10 AM"]))
 
@@ -313,14 +313,14 @@ def test_a_working_solve_may_mention_its_answer_without_being_a_lookup():
     """Measured on all three shipped trajectories: an airline name is a vocabulary entry, a time
     lands in an assertion. "The answer appears in the code" would drop 3 of 3 good solves — the
     signal is every field at once, verbatim."""
-    from webwright.skill_factory.update import _memorized_answer
+    from cuawright.skill_factory.update import _memorized_answer
     code = 'KNOWN_AIRLINES = ["United", "Alaska", "JetBlue"]\nnum = extract_from_tfs(tfs)'
     assert not _memorized_answer(_trace(code, ["UA 729", "United", "12:10 AM"]))
 
 
 def test_one_field_is_never_evidence():
     """A single-field answer that appears in the code proves nothing — "United" is a word."""
-    from webwright.skill_factory.update import _memorized_answer
+    from cuawright.skill_factory.update import _memorized_answer
     assert not _memorized_answer(_trace('AIRLINES = ["United"]', ["United"]))
 
 

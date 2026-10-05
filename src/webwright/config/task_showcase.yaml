@@ -503,7 +503,7 @@ agent:
          ```
          python - <<'PY'
          from pathlib import Path
-         import webwright
+         import webwright as webwright
          starts = [Path.cwd().resolve(), Path(webwright.__file__).resolve()]
          candidates = []
          for start in starts:
