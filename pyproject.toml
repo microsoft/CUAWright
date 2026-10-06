@@ -24,7 +24,7 @@ dependencies = [
 [project.optional-dependencies]
 skill-factory = ["cuawright-skill-factory==0.2.0"]
 desktop = ["openai>=2.0,<3; python_version >= '3.12'"]
-test = ["pytest>=8", "black==25.1.0"]
+test = ["pytest>=8", "black==26.3.1"]
 build = ["build>=1", "wheel"]
 
 [project.scripts]
