@@ -3,1477 +3,753 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Webwright | Terminal-Native Web Agents</title>
+  <title>CUAWright | Browser and Desktop Agents</title>
+  <meta name="description" content="CUAWright: a minimal unified interface that turns coding models into browser and desktop agents.">
+  <meta property="og:title" content="CUAWright: A Minimal Unified Interface for Digital Agents">
+  <meta property="og:description" content="One terminal for browser and desktop agents. 67.9% on OSWorld-V2, 88.1% on Online-Mind2Web, 77.5% on Odysseys.">
+  <meta property="og:image" content="assets/cuawright/main_results.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
+    /* Dark console: deep slate, phosphor green for CUAWright, amber for
+     * the comparison harness. */
     :root {
-      color-scheme: light;
-      --bg: #f4f6f8;
-      --panel: #ffffff;
-      --panel-soft: #f8fafc;
-      --ink: #111827;
-      --muted: #5b6472;
-      --quiet: #8a94a6;
-      --line: #d7dce3;
-      --line-strong: #b8c0cc;
-      --accent: #245fce;
-      --accent-soft: #e7eefc;
-      --green: #0f766e;
-      --green-soft: #dff7ef;
-      --amber: #a16207;
-      --amber-soft: #fef3c7;
-      --terminal: #10151f;
-      --terminal-ink: #d7e0f2;
-      --shadow: 0 14px 36px rgba(17, 24, 39, 0.08), 0 3px 10px rgba(17, 24, 39, 0.06);
-      --radius: 8px;
-      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      color-scheme: dark;
+      --bg: #0b0e14;
+      --bg-2: #10141c;
+      --card: #141923;
+      --line: #232a37;
+      --line-2: #2f3747;
+      --ink: #e8ecf3;
+      --ink-2: #b5bdcb;
+      --muted: #7d8697;
+      --green: #5ee6a0;
+      --green-dim: rgba(94, 230, 160, 0.12);
+      --amber: #f5b45b;
+      --amber-dim: rgba(245, 180, 91, 0.14);
+      --blue: #7cb7ff;
+      --sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+      --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
     }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html {
-      scroll-behavior: smooth;
-    }
-
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
     body {
-      margin: 0;
       background: var(--bg);
       color: var(--ink);
       font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.6;
       -webkit-font-smoothing: antialiased;
-      text-rendering: optimizeLegibility;
     }
+    img, video { display: block; max-width: 100%; }
+    a { color: var(--green); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .container { width: min(1140px, calc(100% - 32px)); margin: 0 auto; }
+    code { font-family: var(--mono); font-size: 0.88em; color: var(--green); }
 
-    a {
-      color: inherit;
-      text-decoration: none;
-    }
-
-    button,
-    iframe {
-      font: inherit;
-    }
-
-    .site-header {
+    header.bar {
       position: sticky;
       top: 0;
-      z-index: 20;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      min-height: 62px;
-      padding: 0 28px;
-      border-bottom: 1px solid rgba(215, 220, 227, 0.86);
-      background: rgba(255, 255, 255, 0.92);
-      backdrop-filter: blur(14px);
+      z-index: 30;
+      border-bottom: 1px solid var(--line);
+      background: rgba(11, 14, 20, 0.85);
+      backdrop-filter: blur(10px);
     }
+    header.bar .container { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 58px; }
+    .logo { display: flex; align-items: center; gap: 10px; color: var(--ink); font-weight: 700; font-size: 17px; }
+    .logo:hover { text-decoration: none; }
+    .logo .prompt { color: var(--green); font-family: var(--mono); }
+    .links { display: flex; gap: 22px; font-size: 14px; }
+    .links a { color: var(--ink-2); }
+    .links a:hover { color: var(--ink); text-decoration: none; }
 
-    .brand-mark {
-      display: inline-flex;
-      align-items: center;
-      min-width: 0;
-    }
-
-    .brand-logo {
-      display: block;
-      width: 168px;
-      height: auto;
-    }
-
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 18px;
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 750;
-    }
-
-    .nav-links a:hover {
-      color: var(--ink);
-    }
-
-    .affiliations {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      margin-left: 4px;
-    }
-
-    .affiliations span {
-      color: var(--muted);
-    }
-
-    .ms-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px 4px 6px;
-      margin-left: 4px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      color: var(--ink) !important;
-      background: #ffffff;
-    }
-
-    .ms-badge:hover {
-      border-color: var(--ink);
-    }
-
-    .ms-logo {
-      width: 16px;
-      height: 16px;
-      display: block;
-    }
-
-    .org-logo {
-      width: 16px;
-      height: 16px;
-      display: block;
-      object-fit: contain;
-    }
-
-    .ms-word {
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.2px;
-    }
-
+    /* hero */
     .hero {
       position: relative;
-      display: grid;
-      align-items: end;
-      min-height: min(640px, 70vh);
+      padding: 76px 0 64px;
       overflow: hidden;
-      isolation: isolate;
-      background: #111827;
     }
-
-    .hero-video {
+    .hero::before {
       position: absolute;
-      inset: 0;
-      z-index: -2;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: center;
-      opacity: 0.62;
-      background: #111827;
-    }
-
-    .hero::after {
-      position: absolute;
-      inset: 0;
-      z-index: -1;
-      background:
-        linear-gradient(90deg, rgba(17, 24, 39, 0.94), rgba(17, 24, 39, 0.68) 46%, rgba(17, 24, 39, 0.3)),
-        linear-gradient(0deg, rgba(17, 24, 39, 0.62), rgba(17, 24, 39, 0.12) 42%);
+      inset: -40% -10% auto auto;
+      width: 720px;
+      height: 720px;
+      background: radial-gradient(circle, rgba(94, 230, 160, 0.16), transparent 62%);
       content: "";
+      pointer-events: none;
     }
-
-    .hero-inner,
-    .section-inner {
-      width: min(1180px, calc(100% - 40px));
-      margin: 0 auto;
+    .hero .container { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; align-items: center; }
+    .kicker { display: inline-flex; gap: 8px; align-items: center; color: var(--green); font-family: var(--mono); font-size: 13px; }
+    .kicker::before { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 12px var(--green); content: ""; }
+    .hero h1 {
+      margin-top: 16px;
+      font-size: clamp(42px, 6vw, 72px);
+      font-weight: 700;
+      line-height: 1.02;
+      letter-spacing: -0.03em;
     }
-
-    .hero-inner {
-      padding: 70px 0 42px;
-      color: #ffffff;
+    .hero h1 .grad {
+      background: linear-gradient(90deg, var(--green), var(--blue));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
     }
-
-    .eyebrow {
-      margin: 0 0 12px;
-      color: rgba(255, 255, 255, 0.74);
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: 0;
-      text-transform: uppercase;
-    }
-
-    h1 {
-      max-width: 830px;
-      margin: 0;
-      font-size: clamp(42px, 8vw, 92px);
-      line-height: 0.96;
-      letter-spacing: 0;
-    }
-
-    .hero-copy {
-      max-width: 740px;
-      margin: 22px 0 0;
-      color: rgba(255, 255, 255, 0.88);
-      font-size: clamp(18px, 2.4vw, 24px);
-      line-height: 1.45;
-    }
-
-    .hero-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 28px;
-    }
-
-    .button {
+    .hero .lede { margin-top: 18px; max-width: 540px; color: var(--ink-2); font-size: 18px; }
+    .who { margin-top: 22px; color: var(--muted); font-size: 14px; line-height: 1.7; }
+    .who b { color: var(--ink-2); font-weight: 500; }
+    .ctas { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+    .cta {
       display: inline-flex;
       align-items: center;
-      justify-content: center;
-      min-height: 42px;
-      padding: 0 15px;
-      border: 1px solid rgba(255, 255, 255, 0.34);
-      border-radius: var(--radius);
-      background: #ffffff;
+      gap: 8px;
+      padding: 10px 16px;
+      border: 1px solid var(--line-2);
+      border-radius: 10px;
       color: var(--ink);
-      font-size: 13px;
-      font-weight: 850;
+      font-size: 14.5px;
+      font-weight: 600;
     }
+    .cta:hover { border-color: var(--green); text-decoration: none; }
+    .cta.main { background: var(--green); border-color: var(--green); color: #06120c; }
+    .cta.main:hover { filter: brightness(1.08); }
 
-    .button.secondary {
-      background: rgba(255, 255, 255, 0.1);
-      color: #ffffff;
-    }
-
-    .hero-stats {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 1px;
+    /* animated terminal */
+    .term {
+      border: 1px solid var(--line-2);
+      border-radius: 14px;
+      background: #07090d;
+      box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(94, 230, 160, 0.05);
       overflow: hidden;
-      max-width: 860px;
-      margin-top: 42px;
-      border: 1px solid rgba(255, 255, 255, 0.22);
-      border-radius: var(--radius);
-      background: rgba(255, 255, 255, 0.18);
     }
-
-    .hero-stat {
-      min-width: 0;
-      padding: 14px 15px;
-      background: rgba(17, 24, 39, 0.48);
-    }
-
-    .hero-stat b {
-      display: block;
-      font-size: clamp(22px, 3vw, 34px);
-      line-height: 1;
-    }
-
-    .hero-stat span {
-      display: block;
-      margin-top: 6px;
-      color: rgba(255, 255, 255, 0.72);
+    .term-top {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line);
+      background: var(--bg-2);
+      color: var(--muted);
       font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 800;
-      line-height: 1.35;
-      text-transform: uppercase;
+      font-size: 12px;
     }
-
-    .approach,
-    .architecture,
-    .lessons,
-    .results,
-    .citation,
-    .showcases {
-      padding: 72px 0;
+    .term-top i { width: 10px; height: 10px; border-radius: 50%; background: var(--line-2); }
+    .term-top span { margin-left: 8px; }
+    .term-body {
+      min-height: 318px;
+      padding: 16px 18px;
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.75;
+      white-space: pre-wrap;
+      color: var(--ink-2);
     }
+    .term-body .p { color: var(--green); }
+    .term-body .c { color: var(--muted); }
+    .term-body .ok { color: var(--green); }
+    .term-body .w { color: var(--amber); }
+    .cursor { display: inline-block; width: 8px; height: 15px; vertical-align: -2px; background: var(--green); animation: blink 1s steps(1) infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
 
-    .bibtex {
-      margin: 22px 0 0;
-      padding: 18px 20px;
+    /* readout */
+    .readout-band { border-block: 1px solid var(--line); background: var(--bg-2); }
+    .readout { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .readout div:first-child { padding-left: 0; }
+    .readout div { padding: 22px 24px; border-right: 1px solid var(--line); }
+    .readout div:last-child { border-right: 0; }
+    .readout b { display: block; color: var(--green); font-family: var(--mono); font-size: 30px; font-weight: 700; line-height: 1.1; }
+    .readout span { color: var(--ink-2); font-size: 14px; }
+    .readout small { display: block; color: var(--muted); font-size: 12.5px; }
+
+    section { padding: 80px 0; }
+    .tag-head { color: var(--muted); font-family: var(--mono); font-size: 13px; }
+    .tag-head b { color: var(--green); font-weight: 500; }
+    h2 { margin-top: 8px; font-size: clamp(30px, 4.2vw, 44px); line-height: 1.1; letter-spacing: -0.02em; }
+    .sub { max-width: 700px; margin-top: 12px; color: var(--ink-2); font-size: 17px; }
+
+    /* ideas */
+    .ideas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 36px; }
+    .idea { padding: 22px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+    .idea .ic {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: var(--green-dim);
+      color: var(--green);
+      font-family: var(--mono);
+      font-weight: 700;
+    }
+    .idea h3 { margin-top: 14px; font-size: 18px; }
+    .idea p { margin-top: 6px; color: var(--ink-2); font-size: 15px; }
+
+    /* runtimes */
+    .split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 20px; }
+    .rt { display: flex; flex-direction: column; padding: 24px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+    .rt .cmd { color: var(--green); font-family: var(--mono); font-size: 13px; }
+    .rt h3 { margin-top: 6px; font-size: 22px; }
+    .rt p { margin-top: 6px; color: var(--ink-2); font-size: 15px; }
+    .rt ul { margin-top: 12px; list-style: none; color: var(--ink-2); font-size: 14.5px; }
+    .rt li { padding-left: 18px; position: relative; margin-top: 4px; }
+    .rt li::before { position: absolute; left: 0; color: var(--green); content: "›"; font-weight: 700; }
+    pre.block {
+      margin-top: 18px;
+      padding: 14px 16px;
       border: 1px solid var(--line);
-      border-radius: var(--radius);
-      background: #f7f8fa;
-      color: var(--ink);
+      border-radius: 10px;
+      background: #07090d;
+      color: var(--ink-2);
       font-family: var(--mono);
       font-size: 12.5px;
-      line-height: 1.6;
+      line-height: 1.7;
       overflow-x: auto;
       white-space: pre;
     }
+    .rt pre.block { margin-top: auto; }
+    .rt ul + pre.block { margin-top: 18px; }
+    pre.block .p { color: var(--green); }
+    pre.block .c { color: var(--muted); }
 
-    .authors {
-      margin: 18px 0 4px;
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--ink);
-    }
-
-    .affiliations-line {
-      margin: 0;
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    .section-kicker {
-      margin: 0 0 9px;
-      color: var(--accent);
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 850;
-      letter-spacing: 0;
-      text-transform: uppercase;
-    }
-
-    .section-title {
-      max-width: 850px;
-      margin: 0;
-      font-size: clamp(30px, 5vw, 54px);
-      line-height: 1.04;
-      letter-spacing: 0;
-    }
-
-    .section-copy {
-      max-width: 820px;
-      margin: 15px 0 0;
-      color: var(--muted);
-      font-size: 17px;
-      line-height: 1.65;
-    }
-
-    .principles {
+    /* results */
+    .res { margin-top: 32px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); overflow: hidden; }
+    .res-head, .res-row {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-      margin-top: 28px;
-    }
-
-    .principle,
-    .metric,
-    .showcase-shell,
-    .terminal-panel {
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      background: var(--panel);
-      box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04);
-    }
-
-    .principle {
-      min-width: 0;
-      padding: 18px;
-    }
-
-    .principle h3,
-    .metric h3 {
-      margin: 0;
-      font-size: 16px;
-      letter-spacing: 0;
-    }
-
-    .principle p,
-    .metric p {
-      margin: 10px 0 0;
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.55;
-    }
-
-    .architecture {
-      background: #ffffff;
-      border-block: 1px solid var(--line);
-    }
-
-    .lessons {
-      background: #ffffff;
-      border-top: 1px solid var(--line);
-    }
-
-    .flow {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(300px, 0.8fr);
-      gap: 16px;
-      align-items: start;
-      margin-top: 30px;
-    }
-
-    .flow-list {
-      display: grid;
-      gap: 10px;
-      margin: 0;
-      padding: 0;
-      list-style: none;
-    }
-
-    .flow-list li {
-      display: grid;
-      grid-template-columns: 42px minmax(0, 1fr);
-      gap: 12px;
-      align-items: start;
-      padding: 14px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      background: var(--panel-soft);
-    }
-
-    .step-num {
-      display: inline-grid;
-      place-items: center;
-      width: 34px;
-      height: 34px;
-      border-radius: 7px;
-      background: var(--ink);
-      color: #ffffff;
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 850;
-    }
-
-    .flow-list b {
-      display: block;
-      font-size: 15px;
-      line-height: 1.35;
-    }
-
-    .flow-list li > span:last-child > span {
-      display: block;
-      margin-top: 4px;
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.5;
-    }
-
-    .terminal-panel {
-      overflow: hidden;
-      background: var(--terminal);
-      color: var(--terminal-ink);
-    }
-
-    .terminal-bar {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      min-height: 38px;
-      padding: 0 12px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.09);
-      color: #8fa1bd;
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 800;
-    }
-
-    .terminal-dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 999px;
-      background: #46c27a;
-    }
-
-    .terminal-body {
-      margin: 0;
-      padding: 16px;
-      overflow-x: auto;
-      font-family: var(--mono);
-      font-size: 12px;
-      line-height: 1.65;
-      white-space: pre;
-    }
-
-    .metrics-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-      margin-top: 28px;
-    }
-
-    .plots-row {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: 190px 130px minmax(0, 1fr) 76px;
       gap: 18px;
-      margin-top: 28px;
-    }
-
-    .plot-card {
-      margin: 0;
-      padding: 16px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      background: #ffffff;
-      box-shadow: var(--shadow);
-    }
-
-    .plot-card img {
-      display: block;
-      width: 100%;
-      height: auto;
-    }
-
-    .plot-card figcaption {
-      margin-top: 10px;
-      color: var(--muted);
-      font-size: 13px;
-      text-align: center;
-    }
-
-    @media (max-width: 760px) {
-      .plots-row {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .metric {
-      padding: 18px;
-    }
-
-    .metric-clickable {
-      cursor: pointer;
-      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-    }
-
-    .metric-clickable:hover {
-      transform: translateY(-2px);
-      border-color: var(--accent);
-      box-shadow: 0 6px 22px rgba(15, 23, 42, 0.08);
-    }
-
-    .metric-clickable::after {
-      content: "↗";
-      float: right;
-      margin-top: -4px;
-      color: var(--muted);
-      font-size: 14px;
-      opacity: 0.6;
-    }
-
-    .plot-modal {
-      position: fixed;
-      inset: 0;
-      display: none;
       align-items: center;
-      justify-content: center;
-      padding: 24px;
-      background: rgba(15, 23, 42, 0.55);
-      z-index: 1000;
+      padding: 14px 22px;
     }
+    .res-head { border-bottom: 1px solid var(--line); background: var(--bg-2); color: var(--muted); font-family: var(--mono); font-size: 12px; }
+    .res-row + .res-row { border-top: 1px solid var(--line); }
+    .res-row .b { font-weight: 600; }
+    .res-row .b small { display: block; color: var(--muted); font-weight: 400; font-size: 12.5px; }
+    .res-row .m { color: var(--ink-2); font-family: var(--mono); font-size: 12.5px; }
+    .meter { position: relative; height: 26px; border-radius: 6px; background: #0d1118; }
+    .meter .o, .meter .u { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 6px; transition: width 1s cubic-bezier(.2, .8, .2, 1); }
+    .meter .u { background: linear-gradient(90deg, rgba(94, 230, 160, 0.25), var(--green)); }
+    .meter .o { z-index: 1; border-right: 2px solid var(--amber); background: #2b2416; }
+    .meter .lab { position: absolute; z-index: 2; top: 50%; transform: translateY(-50%); font-family: var(--mono); font-size: 11.5px; }
+    .meter .lab.o-l { color: var(--amber); }
+    .meter .lab.u-l { right: 8px; color: var(--ink); font-weight: 700; }
+    .res-row .g { justify-self: end; color: var(--green); font-family: var(--mono); font-weight: 700; }
+    .res-foot { padding: 12px 22px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12.5px; }
+    .key { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 18px; color: var(--ink-2); font-size: 13.5px; }
+    .key i { display: inline-block; width: 14px; height: 10px; margin-right: 6px; border-radius: 3px; }
 
-    .plot-modal.is-open {
-      display: flex;
-    }
+    .figs { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 14px; margin-top: 14px; }
+    .figs figure { padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+    .figs img { border-radius: 8px; background: #fff; }
+    .figs figcaption { margin-top: 10px; color: var(--muted); font-size: 13px; }
 
-    .plot-modal-card {
-      position: relative;
-      width: min(960px, 100%);
-      max-height: 90vh;
-      overflow: auto;
-      background: #ffffff;
-      border-radius: var(--radius);
-      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.25);
-      padding: 22px 22px 26px;
-    }
+    /* demo */
+    .player { margin-top: 30px; border: 1px solid var(--line-2); border-radius: 16px; overflow: hidden; background: #000; }
+    .player video { width: 100%; height: auto; }
 
-    .plot-modal-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 14px;
-    }
+    /* what's not in it */
+    .nots { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 28px; align-items: center; margin-top: 14px; padding: 22px 24px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+    .nots h3 { font-size: 21px; line-height: 1.25; }
+    .nots h3 + p { margin-top: 6px; color: var(--ink-2); font-size: 15px; }
+    .nots h3 + p b { color: var(--green); font-weight: 600; }
+    .nots ul { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 18px; font-size: 15px; color: var(--ink-2); }
+    .nots li { position: relative; padding-left: 20px; }
+    .nots li::before { position: absolute; left: 0; content: "✕"; color: #ff6b6b; font-family: var(--mono); font-weight: 700; }
 
-    .plot-modal-title {
-      margin: 0;
-      font-size: 16px;
-      font-weight: 700;
-    }
+    /* trajectories */
+    .trajs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; margin-top: 32px; }
+    .traj { display: flex; flex-direction: column; min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--card); color: var(--ink); transition: border-color .18s, transform .18s; }
+    .traj:hover { border-color: var(--green); text-decoration: none; transform: translateY(-2px); }
+    .traj .th { aspect-ratio: 16 / 9; overflow: hidden; border-bottom: 1px solid var(--line); background: #07090d; }
+    .traj .th img { width: 100%; height: 100%; object-fit: cover; object-position: top; background: #fff; }
+    .traj .th pre { height: 100%; padding: 10px 12px; color: var(--ink-2); font-family: var(--mono); font-size: 10.5px; line-height: 1.55; white-space: pre; overflow: hidden; }
+    .traj .th pre .p { color: var(--green); }
+    .traj .bd { padding: 14px 16px 16px; }
+    .traj .n { color: var(--muted); font-family: var(--mono); font-size: 11.5px; }
+    .traj .n b { color: var(--green); font-weight: 500; }
+    .traj h3 { margin-top: 4px; font-size: 16px; line-height: 1.3; }
+    .traj p { margin-top: 6px; color: var(--ink-2); font-size: 13.5px; line-height: 1.5; }
+    .traj-foot { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; margin-top: 22px; color: var(--muted); font-size: 14px; }
+    .traj-foot a { padding: 9px 16px; border: 1px solid var(--green); border-radius: 10px; font-family: var(--mono); font-size: 13px; }
+    .traj-foot a:hover { background: var(--green-dim); text-decoration: none; }
 
-    .plot-modal-close {
-      appearance: none;
-      border: 1px solid var(--line);
-      background: #fff;
-      width: 32px;
-      height: 32px;
-      border-radius: 999px;
-      cursor: pointer;
-      font-size: 18px;
-      line-height: 1;
-      color: var(--muted);
-    }
+    /* quick start */
+    .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 32px; }
+    .step { min-width: 0; padding: 22px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+    .step .n { color: var(--muted); font-family: var(--mono); font-size: 12.5px; }
+    .step h3 { margin-top: 4px; font-size: 19px; }
+    .step p { margin-top: 4px; color: var(--ink-2); font-size: 14.5px; }
+    .step pre.block { font-size: 11.5px; }
 
-    .plot-modal-close:hover {
-      color: var(--ink);
-      border-color: var(--ink);
-    }
-
-    .plot-modal-body img {
-      display: block;
-      width: 100%;
-      height: auto;
-    }
-
-    .metric strong {
-      display: block;
-      margin-bottom: 8px;
-      color: var(--accent);
-      font-size: clamp(28px, 4vw, 44px);
-      line-height: 0.95;
-      letter-spacing: 0;
-    }
-
-    .showcases {
-      padding-top: 54px;
-      padding-bottom: 84px;
-      background:
-        linear-gradient(180deg, #ffffff, rgba(255, 255, 255, 0)),
-        var(--bg);
-    }
-
-    .featured-showcase {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      align-items: stretch;
-      margin-top: 22px;
-    }
-
-    .featured-frame {
-      min-width: 0;
-      overflow: hidden;
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      background: var(--panel);
-      box-shadow: var(--shadow);
-    }
-
-    .featured-frame {
-      display: grid;
-      grid-template-rows: auto minmax(520px, 70vh);
-      margin-top: 4px;
-    }
-
-    .featured-framebar {
+    .was {
       display: flex;
       flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      min-height: 44px;
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--line);
-      background: #fbfcfe;
-    }
-
-    .featured-framebar b {
-      font-size: 13px;
-      letter-spacing: 0;
-    }
-
-    .featured-framebar span {
-      color: var(--muted);
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 800;
-    }
-
-    .showcase-shell {
-      display: grid;
-      grid-template-rows: auto auto auto minmax(560px, 72vh);
-      gap: 0;
-      overflow: hidden;
-      margin-top: 18px;
-      box-shadow: var(--shadow);
-    }
-
-    .gallery-intro {
-      margin-top: 34px;
-    }
-
-    .gallery-intro .section-copy {
-      margin-top: 8px;
-    }
-
-    .tabs {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 1px;
-      border-bottom: 1px solid var(--line);
-      background: var(--line);
-    }
-
-    .capability-groups {
-      display: grid;
-      grid-template-columns: 4fr 1fr;
-      gap: 1px;
-      border-bottom: 1px solid var(--line);
-      background: var(--line);
-    }
-
-    .capability-group {
-      display: grid;
-      gap: 4px;
-      min-width: 0;
-      padding: 12px 14px;
-      background: #f8fafc;
-    }
-
-    .capability-group strong {
-      font-size: 13px;
-      letter-spacing: 0;
-    }
-
-    .capability-group span {
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.4;
-    }
-
-    .tab {
-      display: grid;
-      gap: 4px;
-      min-width: 0;
-      min-height: 88px;
-      padding: 10px;
-      border: 0;
-      background: var(--panel);
-      color: var(--ink);
-      cursor: pointer;
-      text-align: center;
-    }
-
-    .tab:hover {
-      background: var(--accent-soft);
-    }
-
-    .tab:focus-visible {
-      position: relative;
-      z-index: 1;
-      outline: 3px solid rgba(36, 95, 206, 0.28);
-      outline-offset: -3px;
-    }
-
-    .tab[aria-selected="true"] {
-      background: var(--ink);
-      color: #ffffff;
-    }
-
-    .tab .kicker {
-      overflow: hidden;
-      color: var(--muted);
-      font-size: 11px;
-      font-weight: 800;
-      line-height: 1.1;
-      text-overflow: ellipsis;
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-
-    .tab[aria-selected="true"] .kicker {
-      color: rgba(255, 255, 255, 0.72);
-    }
-
-    .tab .name {
-      overflow: hidden;
-      font-size: 14px;
-      font-weight: 800;
-      line-height: 1.2;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .mode-tag,
-    .frame-mode {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      justify-self: center;
-      min-height: 20px;
-      padding: 2px 7px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      background: #eef2f7;
-      color: var(--muted);
-      font-size: 10.5px;
-      font-weight: 850;
-      line-height: 1;
-      white-space: nowrap;
-    }
-
-    .tab.tool-tab .mode-tag,
-    .frame-mode.tool {
-      border-color: rgba(15, 118, 110, 0.22);
-      background: var(--green-soft);
-      color: var(--green);
-    }
-
-    .tab.browser-tab .mode-tag,
-    .frame-mode.browser {
-      border-color: rgba(36, 95, 206, 0.2);
-      background: var(--accent-soft);
-      color: var(--accent);
-    }
-
-    .tab[aria-selected="true"] .mode-tag {
-      border-color: rgba(255, 255, 255, 0.24);
-      background: rgba(255, 255, 255, 0.12);
-      color: rgba(255, 255, 255, 0.86);
-    }
-
-    .framebar {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr);
       gap: 16px;
       align-items: center;
-      min-width: 0;
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--line);
-      background: #fbfcfe;
-    }
-
-    .frame-heading {
-      display: grid;
-      gap: 5px;
-      min-width: 0;
-    }
-
-    .frame-title-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 0;
-    }
-
-    .frame-title {
-      overflow: hidden;
-      min-width: 0;
-      font-size: 15px;
-      font-weight: 850;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .frame-mode {
-      flex: 0 0 auto;
-      justify-self: auto;
-      color: var(--accent);
-    }
-
-    .frame-summary {
-      margin: 0;
-      overflow: hidden;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.45;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .frame-proof {
-      margin: -1px 0 0;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.5;
-    }
-
-    .frame-wrap {
-      min-height: 0;
-      background: #ffffff;
-    }
-
-    iframe {
-      display: block;
-      width: 100%;
-      height: 100%;
-      border: 0;
-      background: #ffffff;
-    }
-
-    .featured-video {
-      display: block;
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      background: #000;
-    }
-
-    .site-footer {
-      padding: 28px 0 36px;
-      border-top: 1px solid var(--line);
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    .footer-row {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      margin-top: 28px;
+      padding: 18px 22px;
+      border: 1px dashed var(--line-2);
+      border-radius: 14px;
+      color: var(--ink-2);
+      font-size: 15px;
     }
+    .was b { color: var(--ink); }
 
-    .footer-links {
-      display: inline-flex;
-      gap: 8px;
-      align-items: center;
+    .bib { position: relative; margin-top: 24px; }
+    .bib pre.block { margin-top: 0; padding: 20px 22px; font-size: 12.5px; }
+    .bib button {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      padding: 6px 12px;
+      border: 1px solid var(--line-2);
+      border-radius: 8px;
+      background: var(--card);
+      color: var(--ink-2);
+      font: 500 12.5px var(--mono);
+      cursor: pointer;
     }
+    .bib button:hover { color: var(--green); border-color: var(--green); }
 
-    .footer-links a {
-      color: var(--ink);
-      text-decoration: none;
-      border-bottom: 1px solid var(--line);
+    footer { padding: 30px 0 50px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+    footer .container { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; }
+    footer a { color: var(--ink-2); }
+
+    @media (max-width: 900px) {
+      .hero .container, .ideas, .split, .figs, .steps { grid-template-columns: 1fr; }
+      .trajs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .nots, .nots ul { grid-template-columns: 1fr; }
+      .readout { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .readout div:nth-child(2) { border-right: 0; }
+      .readout div:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+      .res-head { display: none; }
+      .res-row { grid-template-columns: minmax(0, 1fr) auto; }
+      .res-row .m { grid-row: 2; }
+      .res-row .meter { grid-column: 1 / -1; grid-row: 3; }
+      .res-row .g { grid-row: 1; grid-column: 2; }
+      .links .opt { display: none; }
     }
-
-    .footer-links a:hover {
-      border-bottom-color: var(--ink);
+    @media (max-width: 520px) {
+      section { padding: 56px 0; }
+      .trajs { grid-template-columns: 1fr; }
+      .hero { padding-top: 48px; }
+      .readout div { padding: 16px; }
+      .readout b { font-size: 24px; }
+      .term-body { font-size: 11.5px; min-height: 280px; }
     }
-
-    @media (max-width: 980px) {
-      .hero-stats,
-      .principles,
-      .metrics-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .flow {
-        grid-template-columns: 1fr;
-      }
-
-      .featured-showcase {
-        grid-template-columns: 1fr;
-      }
-
-      .tabs {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .capability-groups {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    @media (max-width: 720px) {
-      .site-header {
-        align-items: flex-start;
-        flex-direction: column;
-        justify-content: center;
-        min-height: 84px;
-        padding: 12px 20px;
-      }
-
-      .nav-links {
-        width: 100%;
-        overflow-x: auto;
-        padding-bottom: 2px;
-      }
-
-      .hero-inner,
-      .section-inner {
-        width: min(100% - 28px, 1180px);
-      }
-
-      .hero {
-        min-height: 70vh;
-      }
-
-      .hero-inner {
-        padding: 54px 0 34px;
-      }
-
-      .hero-stats,
-      .principles,
-      .metrics-grid,
-      .tabs {
-        grid-template-columns: 1fr;
-      }
-
-      .approach,
-      .architecture,
-      .lessons,
-      .results,
-      .citation,
-      .showcases {
-        padding: 54px 0;
-      }
-
-      .framebar {
-        grid-template-columns: 1fr;
-      }
-
-      .frame-summary {
-        white-space: normal;
-      }
-
-      .showcase-shell {
-        grid-template-rows: auto auto auto minmax(520px, 68vh);
-      }
-
-      .featured-frame {
-        grid-template-rows: auto minmax(520px, 68vh);
-      }
-
-      .featured-showcase {
-        grid-template-columns: 1fr;
-      }
+    @media (prefers-reduced-motion: reduce) {
+      .cursor { animation: none; }
+      .meter .o, .meter .u { transition: none; }
     }
   </style>
 </head>
 <body>
-  <header class="site-header">
-    <a class="brand-mark" href="#top" aria-label="Webwright home">
-      <img class="brand-logo" src="showcase/logo.png" alt="Webwright">
-    </a>
-    <nav class="nav-links" aria-label="Primary navigation">
-      <a href="#approach">Idea</a>
-      <a href="#showcase">Showcase</a>
-      <a href="#architecture">Harness</a>
-      <a href="#results">Results</a>
-      <a href="#citation">Cite</a>
-      <a href="https://www.microsoft.com/en-us/research/articles/webwright-a-terminal-is-all-you-need-for-web-agents/" target="_blank" rel="noopener">Blog</a>
-      <a href="https://github.com/microsoft/Webwright" target="_blank" rel="noopener">GitHub</a>
-      <span class="affiliations">
-        <a href="https://www.microsoft.com/research/" target="_blank" rel="noopener">Microsoft Research</a>
-        <span aria-hidden="true">/</span>
-        <a href="https://sites.google.com/view/chaoh/group-join-us?authuser=0" target="_blank" rel="noopener">HKU</a>
-      </span>
-    </nav>
+  <header class="bar">
+    <div class="container">
+      <a class="logo" href="#top"><span class="prompt">&gt;_</span>CUAWright</a>
+      <nav class="links" aria-label="Primary navigation">
+        <a class="opt" href="#idea">Idea</a>
+        <a class="opt" href="#results">Results</a>
+        <a class="opt" href="#demo">Demo</a>
+        <a class="opt" href="#trajectories">Trajectories</a>
+        <a class="opt" href="#start">Start</a>
+        <a href="https://arxiv.org/abs/2610.04116" target="_blank" rel="noopener">Paper</a>
+        <a href="https://github.com/microsoft/Webwright" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
   </header>
 
   <main id="top">
-    <section class="hero" aria-label="Webwright overview">
-      <video class="hero-video" autoplay muted loop playsinline preload="metadata" aria-hidden="true">
-        <source src="showcase/flight_with.mp4" type="video/mp4">
-      </video>
-      <div class="hero-inner">
-        <p class="eyebrow">Terminal-native web agents</p>
-        <h1>A terminal is all you need for web agents.</h1>
-        <p class="hero-copy">
-          Webwright gives the model a terminal, a local workspace, and the freedom to write code that launches, inspects, and discards browser sessions. The output is not just a completed task, but a reusable program.
-        </p>
-        <div class="hero-actions">
-          <a class="button" href="#architecture">How it works</a>
-          <a class="button secondary" href="#showcase">Watch the trace</a>
-          <a class="button secondary" href="https://github.com/microsoft/Webwright" target="_blank" rel="noopener">GitHub</a>
-          <a class="button secondary" href="https://www.microsoft.com/en-us/research/articles/webwright-a-terminal-is-all-you-need-for-web-agents/" target="_blank" rel="noopener">Microsoft Research Blog</a>
-        </div>
-        <div class="hero-stats" aria-label="Webwright headline results">
-          <div class="hero-stat">
-            <b>3</b>
-            <span>core modules</span>
-          </div>
-          <div class="hero-stat">
-            <b>~1K</b>
-            <span>lines of harness code</span>
-          </div>
-          <div class="hero-stat">
-            <b>86.7%</b>
-            <span>Online-Mind2Web accuracy</span>
-          </div>
-          <div class="hero-stat">
-            <b>60.8%</b>
-            <span>Odysseys score</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="approach" class="approach">
-      <div class="section-inner">
-        <p class="section-kicker">Paradigm shift</p>
-        <h2 class="section-title">In Webwright, agent can launch multiple browser sessions in terminal.</h2>
-        <p class="section-copy">
-          Traditional web agents keep one browser session alive and predict the next click, type, or scroll. Webwright separates the agent from that session: the browser can be launched, inspected, and discarded, while code, logs, screenshots, and outputs persist in the local workspace.
-        </p>
-        <div class="principles">
-          <article class="principle">
-            <h3>Disposable browsers</h3>
-            <p>The agent can spawn fresh browser sessions, capture screenshots only when useful, inspect failures, and rerun scripts without being trapped in a single stateful page.</p>
-          </article>
-          <article class="principle">
-            <h3>Code composes actions</h3>
-            <p>Date selection, form filling, filtering, comparison, and extraction can become loops and functions instead of long chains of primitive browser actions.</p>
-          </article>
-          <article class="principle">
-            <h3>Artifacts survive</h3>
-            <p>The durable output is a workspace: exploratory scripts, action logs, screenshots, final outputs, and eventually a reusable task program.</p>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section id="results" class="results">
-      <div class="section-inner">
-        <p class="section-kicker">Reported results</p>
-        <h2 class="section-title">A small harness, competitive long-horizon performance.</h2>
-        <p class="section-copy">
-          The report evaluates Webwright on live, long-horizon web benchmarks while preserving the simple terminal interface. The same pipeline also records critical-point screenshots, action logs, and reusable command-line tools.
-        </p>
-        <div class="plots-row">
-          <figure class="plot-card">
-            <img src="assets/plot_odysseys.svg" alt="Odysseys long-horizon score plot">
-            <figcaption>Odysseys — long-horizon browsing</figcaption>
-          </figure>
-          <figure class="plot-card">
-            <img src="assets/plot_om2w.svg" alt="Online-Mind2Web accuracy plot">
-            <figcaption>Online-Mind2Web — accuracy on 300 live tasks</figcaption>
-          </figure>
-        </div>
-        <div class="metrics-grid">
-          <article class="metric">
-            <strong>60.8%</strong>
-            <h3>Odysseys</h3>
-            <p>Long-horizon browsing score, a 35.1% relative improvement over the previous reported SOTA.</p>
-          </article>
-          <article class="metric">
-            <strong>86.7%</strong>
-            <h3>Online-Mind2Web</h3>
-            <p>GPT-5.4 accuracy on 300 live tasks across 136 sites with a 100-step budget.</p>
-          </article>
-          <article class="metric">
-            <strong>66.2%</strong>
-            <h3>Small model tools</h3>
-            <p>Qwen3.5-9B on the hard split of Online-Mind2Web when augmented with crafted reusable tools.</p>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section id="architecture" class="architecture">
-      <div class="section-inner">
-        <p class="section-kicker">Minimal harness</p>
-        <h2 class="section-title">One loop, three modules, no orchestration tower.</h2>
-        <p class="section-copy">
-          The implementation is deliberately small: a Runner, a Model Endpoint, and a terminal Environment. Each is a single module, totaling roughly 1K lines of harness code, with no multi-agent orchestration or complex planning hierarchy.
-        </p>
-        <div class="flow">
-          <ol class="flow-list">
-            <li>
-              <span class="step-num">01</span>
-              <span><b>Send context</b><span>The runner sends the task, workspace state, and recent observations to the model.</span></span>
-            </li>
-            <li>
-              <span class="step-num">02</span>
-              <span><b>Emit bash</b><span>The model returns a thinking block and a shell command, often writing Playwright-backed scripts to explore pages and collect data.</span></span>
-            </li>
-            <li>
-              <span class="step-num">03</span>
-              <span><b>Return observations</b><span>The environment runs the command and returns terminal output, logs, screenshots, files, or error tracebacks.</span></span>
-            </li>
-            <li>
-              <span class="step-num">04</span>
-              <span><b>Refine and finish</b><span>The loop continues until the agent produces a final script, reruns it in a fresh folder, and passes self-reflection.</span></span>
-            </li>
-          </ol>
-          <article class="terminal-panel" aria-label="Terminal workflow example">
-            <div class="terminal-bar"><span class="terminal-dot"></span> workspace/run</div>
-            <pre class="terminal-body">$ python final_script.py
-open browser
-search live web pages
-capture screenshots
-write action log
-
-$ python -m webwright.tools.self_reflection
-evaluate critical points
-Status: success
-
-$ ls final_runs/run_1
-final_script.py
-final_script_log.txt
-screenshots/
-self_reflect_result.json</pre>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section id="showcase" class="showcases">
-      <div class="section-inner">
-        <p class="section-kicker">Workspace trace</p>
-        <h2 class="section-title">Watch a long web task turn into files, commands, and a verified final run.</h2>
-        <p class="section-copy">
-          The trace below makes the terminal-native loop visible. The left panel shows the workspace growing as the agent creates plans, scripts, logs, screenshots, and final-run artifacts; the terminal transcript shows the generated command and command_output that produced each observation.
-        </p>
-        <div class="featured-showcase" aria-label="Webwright comparison videos">
-          <div class="featured-frame">
-            <div class="featured-framebar">
-              <span>Webwright v.s. Vision based (both GPT-5.4)</span>
-            </div>
-            <video
-              class="featured-video"
-              controls
-              autoplay
-              muted
-              loop
-              playsinline
-              preload="metadata"
-            >
-              <source src="showcase/vstack_compare_section1.mp4" type="video/mp4">
-              Your browser does not support the video tag.
-            </video>
-          </div>
-          <div class="featured-frame">
-            <div class="featured-framebar">
-              <span>Claude Code with v.s without Webwright Skills</span>
-            </div>
-            <video
-              class="featured-video"
-              controls
-              autoplay
-              muted
-              loop
-              playsinline
-              preload="metadata"
-            >
-              <source src="showcase/vstack_compare_section2.mp4" type="video/mp4">
-              Your browser does not support the video tag.
-            </video>
-          </div>
-          <div class="featured-frame">
-            <div class="featured-framebar">
-              <span>Browsing history becomes reusable code</span>
-            </div>
-            <video
-              class="featured-video"
-              controls
-              autoplay
-              muted
-              loop
-              playsinline
-              preload="metadata"
-            >
-              <source src="showcase/vstack_compare_section3.mp4" type="video/mp4">
-              Your browser does not support the video tag.
-            </video>
-          </div>
-        </div>
-
-        <div class="gallery-intro">
-          <p class="section-kicker">Capability gallery</p>
-          <p class="section-copy">
-            We show webwright can craft tools for user tasks, and converted to codex skills for repeated usage, which leads to token and time saving.
+    <section class="hero">
+      <div class="container">
+        <div>
+          <span class="kicker">Webwright is now CUAWright</span>
+          <h1>CUAWright: <span class="grad">A Minimal Unified Interface for All Digital Tasks.</span></h1>
+          <p class="lede">
+            CUAWright is a minimal unified interface for browser and desktop agents. The model gets a terminal, writes
+            code that drives a browser or an Ubuntu desktop, checks the result, and keeps its work on disk.
           </p>
+          <p class="who">
+            <b>Yadong Lu, Theodore Lee, Yifei Li, Lawrence Keunho Jang, Tianci Xue, Yu Su, Huan Sun, Ahmed Hassan Awadallah</b>
+          </p>
+          <div class="ctas">
+            <a class="cta main" href="https://arxiv.org/abs/2610.04116" target="_blank" rel="noopener">Read the paper</a>
+            <a class="cta" href="https://github.com/microsoft/Webwright" target="_blank" rel="noopener">GitHub</a>
+            <a class="cta" href="#demo">▶ Demo</a>
+          </div>
         </div>
-        <div class="showcase-shell" aria-label="Interactive showcase gallery">
-          <div class="capability-groups" aria-label="Showcase capability groups">
-            <div class="capability-group">
-              <strong>Generated CLI tools / skills</strong>
-              <span>Four domain workflows demonstrate reusable task programs that can be packaged, selected, and compared against baseline runs.</span>
-            </div>
-          </div>
-          <nav class="tabs" aria-label="Showcase switcher">
-            <button class="tab tool-tab" type="button" data-demo="flight-with" aria-selected="true">
-              <span class="kicker">Flights</span>
-              <span class="name">With Skill</span>
-              <span class="mode-tag">Generated CLI Tool</span>
-            </button>
-            <button class="tab tool-tab" type="button" data-demo="flight-without" aria-selected="false">
-              <span class="kicker">Flights</span>
-              <span class="name">Without Skill</span>
-              <span class="mode-tag">Baseline (no tool)</span>
-            </button>
-            <button class="tab tool-tab" type="button" data-demo="ticket-with" aria-selected="false">
-              <span class="kicker">Ticketmaster</span>
-              <span class="name">With Skill</span>
-              <span class="mode-tag">Generated CLI Tool</span>
-            </button>
-            <button class="tab tool-tab" type="button" data-demo="ticket-without" aria-selected="false">
-              <span class="kicker">Ticketmaster</span>
-              <span class="name">Without Skill</span>
-              <span class="mode-tag">Baseline (no tool)</span>
-            </button>
-          </nav>
-          <div class="framebar">
-            <div class="frame-heading">
-              <div class="frame-title-row">
-                <div class="frame-title" id="frameTitle">Flights with skill</div>
-                <span class="frame-mode tool" id="frameMode">Generated CLI Tool</span>
-              </div>
-              <p class="frame-summary" id="frameSummary">Skill-guided Google Flights comparison for a Hong Kong to Jeju trip.</p>
-              <p class="frame-proof" id="frameProof">Shows a generated flight skill being selected and reused as a task-specific tool.</p>
-            </div>
-          </div>
-          <div class="frame-wrap">
-            <iframe
-              id="demoFrame"
-              title="Flights with skill"
-              src="showcase/index_flight_with.html"
-              loading="eager"
-            ></iframe>
-          </div>
+        <div class="term" aria-label="Example CUAWright session">
+          <div class="term-top"><i></i><i></i><i></i><span id="term-title">cuawright desktop</span></div>
+          <div class="term-body" id="term" aria-live="off"></div>
         </div>
       </div>
     </section>
 
-    <section id="lessons" class="lessons">
-      <div class="section-inner">
-        <p class="section-kicker">Challenges handled</p>
-        <h2 class="section-title">Open-ended terminal actions need verification, memory control, and reusable outputs.</h2>
-        <p class="section-copy">
-          Giving an agent a terminal is powerful, but it creates new failure modes. Webwright keeps the harness small while adding just enough structure around completion, context, and reuse.
+    <div class="readout-band"><div class="container readout" aria-label="Headline results">
+      <div><b>67.9%</b><span>OSWorld-V2</span><small>+5.2 over GPT-5.6 Sol alone</small></div>
+      <div><b>88.1%</b><span>Online-Mind2Web</span><small>+4.7 over a GUI agent</small></div>
+      <div><b>77.5%</b><span>Odysseys</span><small>+44.0 over a GUI agent</small></div>
+      <div><b>−$9.5</b><span>API cost per task</span><small>OSWorld-V2, GPT-5.6 Sol</small></div>
+    </div></div>
+
+    <section id="idea">
+      <div class="container">
+        <p class="tag-head"><b>#</b> idea</p>
+        <h2>Stop predicting clicks. Start writing programs.</h2>
+        <p class="sub">
+          Most computer-use agents watch one screen and guess the next click. As models get better at code, that loop becomes the
+          bottleneck. CUAWright keeps the small loop from <a href="webwright.html">Webwright</a> and extends it to the desktop.
         </p>
-        <div class="principles">
-          <article class="principle">
-            <h3>Premature done gate</h3>
-            <p>The agent must generate a final script, rerun it in a fresh folder, save logs and screenshots, and pass a self-reflection judgement before done is accepted.</p>
+        <div class="ideas">
+          <article class="idea">
+            <div class="ic">{ }</div>
+            <h3>Code is the action</h3>
+            <p>A form, a date picker, or a spreadsheet edit becomes a short program with loops and checks, not a long chain of clicks.</p>
           </article>
-          <article class="principle">
-            <h3>Context compaction</h3>
-            <p>Long coding trajectories can exceed context limits, so history is periodically compacted into summaries while the workspace keeps the concrete artifacts.</p>
+          <article class="idea">
+            <div class="ic">~/</div>
+            <h3>The workspace is the state</h3>
+            <p>Scripts, logs, and screenshots stay on disk, so the agent can restart a browser and retry without losing progress.</p>
           </article>
-          <article class="principle">
-            <h3>Reusable tools</h3>
-            <p>Once solved, a task script can be parameterized, exported as a CLI, shared with coding agents, and reused instead of rediscovered from scratch.</p>
+          <article class="idea">
+            <div class="ic">✓</div>
+            <h3>Done means verified</h3>
+            <p>Text alone never finishes a task. Browser runs rerun a final script; desktop runs end with an explicit submit command.</p>
+          </article>
+        </div>
+
+        <div class="nots">
+          <div>
+            <h3>It's what's not in CUAWright.</h3>
+            <p>Everything else, <b>the agent builds itself</b> as it works.</p>
+          </div>
+          <ul>
+            <li>No tools except <code>run_command</code> in a terminal</li>
+            <li>No screenshot on every step by default</li>
+            <li>No multi-agent orchestration</li>
+            <li>No human-engineered RAG or memory system</li>
+          </ul>
+        </div>
+
+        <div class="split">
+          <article class="rt">
+            <span class="cmd">$ cuawright web</span>
+            <h3>Browser runtime</h3>
+            <p>Writes Playwright scripts, opens and closes browsers freely, and only looks at screenshots when needed.</p>
+            <ul>
+              <li>OpenAI, Anthropic, and OpenRouter backends</li>
+              <li>A reusable <code>final_script.py</code> from each solved task</li>
+              <li>Plugin for Claude Code, Codex, and Hermes</li>
+            </ul>
+<pre class="block"><span class="p">$</span> python explore_results.py   <span class="c"># inspect the page</span>
+<span class="p">$</span> python final_script.py      <span class="c"># rerun in a fresh folder</span>
+<span class="p">$</span> python -m cuawright.webwright.tools.self_reflection
+Status: success</pre>
+          </article>
+          <article class="rt">
+            <span class="cmd">$ cuawright desktop</span>
+            <h3>Desktop runtime</h3>
+            <p>Works inside an OSWorld-V2 Ubuntu VM through a guest bridge, with CDP, xdotool, keyboard, mouse, and screenshots.</p>
+            <ul>
+              <li>Your own tasks, or scored OSWorld-V2 tasks</li>
+              <li>Pinned release, task setup, evaluator, and provenance</li>
+              <li>Saves <code>manifest.json</code>, <code>trace.jsonl</code>, <code>result.json</code></li>
+            </ul>
+<pre class="block"><span class="p">$</span> libreoffice --headless --convert-to xlsx report.csv
+<span class="p">$</span> python check_cells.py       <span class="c"># verify the saved file</span>
+<span class="p">$</span> python /opt/cuawright-tools/submit.py
+submitted</pre>
           </article>
         </div>
       </div>
     </section>
 
-    <section id="citation" class="citation">
-      <div class="section-inner">
-        <p class="section-kicker">Citation</p>
-        <h2 class="section-title">Cite this work.</h2>
-        <p class="section-copy">
-          If you use Webwright in your research or build on it, please cite the repository:
-        </p>
-<pre class="bibtex"><code>@misc{webwright2026,
-  title        = {Webwright: A terminal is all you need for web agents},
-  author       = {Lu, Yadong and Xu, Lingrui and Huang, Chao and Awadallah, Ahmed},
-  year         = {2026},
-  howpublished = {\url{https://github.com/microsoft/Webwright}},
-  note         = {GitHub repository}
+    <section id="results" style="background: var(--bg-2); border-block: 1px solid var(--line);">
+      <div class="container">
+        <p class="tag-head"><b>#</b> results</p>
+        <h2>Same model, better performance and lower cost.</h2>
+        <p class="sub">Each row compares CUAWright with the best existing harness running the same model.</p>
+        <div class="key">
+          <span><i style="background: var(--amber);"></i>Same model, other harness</span>
+          <span><i style="background: var(--green);"></i>CUAWright</span>
+        </div>
+        <div class="res" id="res">
+          <div class="res-head"><span>benchmark</span><span>model</span><span>score (%)</span><span style="justify-self: end;">gain</span></div>
+          <div class="res-foot">OSWorld-V2: partial score. Online-Mind2Web, Odysseys: success rate. WeaveBench: pass rate. BenchCAD: Vision2Code mean IoU. CADGenBench: aggregate score.</div>
+        </div>
+        <div class="figs">
+          <figure>
+            <img src="assets/cuawright/main_results.png" alt="Bar charts of CUAWright results on OSWorld-V2, CADGenBench, BenchCAD, Online-Mind2Web, Odysseys, and WeaveBench against the same model in a different harness and other baselines" loading="lazy">
+            <figcaption>All six benchmarks, including other baselines.</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/cuawright/osworld_v2_cost.png" alt="OSWorld-V2 partial score against API cost per task. CUAWright with GPT-5.6 Sol reaches 67.9% at about $4.5 per task" loading="lazy">
+            <figcaption>OSWorld-V2: higher score at lower API cost for both models.</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section id="demo">
+      <div class="container">
+        <p class="tag-head"><b>#</b> demo</p>
+        <h2>See it in 78 seconds.</h2>
+        <div class="player">
+          <video controls playsinline preload="metadata" poster="assets/cuawright/demo_poster.jpg">
+            <source src="assets/cuawright/demo.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      </div>
+    </section>
+
+    <section id="trajectories" style="padding-top: 0;">
+      <div class="container">
+        <p class="tag-head"><b>#</b> trajectories</p>
+        <h2>Watch it work, one step at a time.</h2>
+        <p class="sub">Ten OSWorld-V2 runs with GPT-5.5 at xhigh reasoning effort. The agent writes scripts, checks its own work, and recovers when something fails. Open any run to step through its reasoning, commands, outputs, and screenshots.</p>
+        <div class="trajs">
+          <a class="traj" href="showcase/osworld/?theme=dark#030">
+            <div class="th"><pre><span class="p">$</span> python test_simple.py --ckpt_iter 200
+✓ Correct predictions:    0 (0.00%)
+<span class="p">$</span> … --ckpt_iter 1000
+✓ Correct predictions: 5546 (55.46%)
+<span class="p">$</span> … --ckpt_iter 5000
+✓ Correct predictions: 9087 (90.87%)
+<span class="p">$</span> … --ckpt_iter 7000
+✓ Correct predictions: 9281 (92.81%)</pre></div>
+            <div class="bd"><span class="n"><b>01</b> / terminal · pytorch</span><h3>Train a model until it hits the target</h3><p>Trains longer and longer runs until test accuracy goes from 0% to 92.8%, then fills in the meeting note.</p></div>
+          </a>
+          <a class="traj" href="showcase/osworld/?theme=dark#100">
+            <div class="th"><img src="showcase/osworld/thumbs/100.jpg" alt="" loading="lazy"></div>
+            <div class="bd"><span class="n"><b>02</b> / chrome · xdotool</span><h3>Solve a jigsaw puzzle without DevTools</h3><p>Cuts the pieces out of screenshots, finds the layout whose edges fit, then drags each piece with the mouse.</p></div>
+          </a>
+          <a class="traj" href="showcase/osworld/?theme=dark#061">
+            <div class="th"><img src="showcase/osworld/thumbs/061.jpg" alt="" loading="lazy"></div>
+            <div class="bd"><span class="n"><b>03</b> / python · pillow</span><h3>Copy a photo edit from one example</h3><p>Measures the colour shift in a before/after pair, tests several transfer methods, and applies the best one.</p></div>
+          </a>
+          <a class="traj" href="showcase/osworld/?theme=dark#066">
+            <div class="th"><img src="showcase/osworld/thumbs/066.jpg" alt="" loading="lazy"></div>
+            <div class="bd"><span class="n"><b>04</b> / pptx · libreoffice</span><h3>Fix slide layout by editing the PPTX</h3><p>Edits the slide XML, takes the title colour from the logo's pixels, and renders after each change.</p></div>
+          </a>
+          <a class="traj" href="showcase/osworld/?theme=dark#027">
+            <div class="th"><pre><span class="p">$</span> curl …/chart/NVDA
+HTTP Error 429: Too Many Requests
+<span class="p">$</span> python fetch.py  # retry, 5 tickers
+NVDA 122 days  2025-01-02 → 06-30
+AAPL 122 days  …
+<span class="p">$</span> python fill_workbooks.py
+Filled daily.xlsx and summary.xlsx</pre></div>
+            <div class="bd"><span class="n"><b>05</b> / python · openpyxl</span><h3>Fill stock workbooks from market data</h3><p>Downloads prices for five stocks, works around a rate limit, and fills two workbooks in 16 steps.</p></div>
+          </a>
+          <a class="traj" href="showcase/osworld/?theme=dark#012">
+            <div class="th"><img src="showcase/osworld/thumbs/012.jpg" alt="" loading="lazy"></div>
+            <div class="bd"><span class="n"><b>06</b> / word · pdf · files</span><h3>Match exam mistakes to past papers</h3><p>Searches 61 PDFs, matches scans visually with contact sheets, and finds the last paper in the Trash.</p></div>
+          </a>
+          <a class="traj" href="showcase/osworld/?theme=dark#104">
+            <div class="th"><img src="showcase/osworld/thumbs/104.jpg" alt="" loading="lazy"></div>
+            <div class="bd"><span class="n"><b>07</b> / freecad · svg</span><h3>Model a stepped shaft in FreeCAD</h3><p>Reads exact dimensions from the drawing's vector paths and builds the part with a revolve script.</p></div>
+          </a>
+          <a class="traj" href="showcase/osworld/?theme=dark#088">
+            <div class="th"><img src="showcase/osworld/thumbs/088.jpg" alt="" loading="lazy"></div>
+            <div class="bd"><span class="n"><b>08</b> / calc · thunderbird</span><h3>Build a contract and email generator</h3><p>Builds macro buttons through UNO and fixes a failing loop with Python helpers: 20 contracts, 20 drafts.</p></div>
+          </a>
+          <a class="traj" href="showcase/osworld/?theme=dark#001">
+            <div class="th"><img src="showcase/osworld/thumbs/001.jpg" alt="" loading="lazy"></div>
+            <div class="bd"><span class="n"><b>09</b> / thunderbird · calendar</span><h3>Schedule thesis defenses from an email</h3><p>Reads the schedule attached to an email, adds 7 defenses, and removes 2 conflicting events.</p></div>
+          </a>
+          <a class="traj" href="showcase/osworld/?theme=dark#105">
+            <div class="th"><img src="showcase/osworld/thumbs/105.jpg" alt="" loading="lazy"></div>
+            <div class="bd"><span class="n"><b>10</b> / 3d slicer · simpleitk</span><h3>Check and correct a tumor segmentation</h3><p>Reviews MRI overlay montages slice by slice, then fixes the mask while keeping the BraTS labels.</p></div>
+          </a>
+        </div>
+        <div class="traj-foot">
+          <span>Scores come from the official OSWorld-V2 evaluator. Nine runs score 0.99 or higher; the FreeCAD run scores 0.90.</span>
+          <a href="showcase/osworld/?theme=dark">Open the trajectory viewer →</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="start" style="padding-top: 0;">
+      <div class="container">
+        <p class="tag-head"><b>#</b> quick start</p>
+        <h2>Up and running in three commands.</h2>
+        <div class="steps">
+          <div class="step">
+            <span class="n">01 / browser</span>
+            <h3>Run a web task</h3>
+            <p>Writes a trajectory, screenshots, and a reusable script.</p>
+<pre class="block">pip install -e .
+playwright install chromium
+
+cuawright-web main \
+  -c base.yaml -c model_openai.yaml \
+  -t "&lt;task&gt;" --start-url &lt;url&gt; \
+  --task-id demo -o outputs/demo</pre>
+          </div>
+          <div class="step">
+            <span class="n">02 / desktop</span>
+            <h3>Run a desktop task</h3>
+            <p>Needs Python 3.12+, Docker, and the gated OSWorld-V2 snapshots.</p>
+<pre class="block">pip install -e ".[desktop]"
+cuawright setup osworld --root &lt;dir&gt;
+
+cuawright desktop run \
+  --setup &lt;dir&gt;/setup.json \
+  --credentials &lt;key-file&gt; \
+  --results &lt;out&gt; \
+  --model &lt;model&gt; --instruction "&lt;task&gt;"</pre>
+          </div>
+          <div class="step">
+            <span class="n">03 / plugin</span>
+            <h3>Add it to your agent</h3>
+            <p>The host agent runs the loop, so no extra API key is needed.</p>
+<pre class="block"><span class="c"># Claude Code</span>
+/plugin marketplace add microsoft/Webwright
+/plugin install cuawright@cuawright
+
+<span class="c"># Codex</span>
+codex plugin marketplace add \
+  microsoft/Webwright</pre>
+          </div>
+        </div>
+        <div class="was">
+          <span><b>Formerly Webwright.</b> The browser runtime lives on as <code>cuawright.webwright</code>; old commands and imports still work.</span>
+          <a class="cta" href="webwright.html">Webwright page →</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="citation" style="padding-top: 0;">
+      <div class="container">
+        <p class="tag-head"><b>#</b> cite</p>
+        <h2>BibTeX</h2>
+        <div class="bib">
+          <button type="button" data-copy>copy</button>
+<pre class="block" id="bibtex"><code style="color: inherit;">@misc{lu2026cuawright,
+  title         = {CUAWright: A Minimal Unified Interface for Digital Agents},
+  author        = {Lu, Yadong and Lee, Theodore and Li, Yifei and Jang, Lawrence Keunho and Xue, Tianci and Su, Yu and Sun, Huan and Awadallah, Ahmed Hassan},
+  year          = {2026},
+  eprint        = {2610.04116},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.AI},
+  url           = {https://arxiv.org/abs/2610.04116}
 }</code></pre>
+        </div>
       </div>
     </section>
-
   </main>
 
-  <div class="plot-modal" id="plotModal" role="dialog" aria-modal="true" aria-labelledby="plotModalTitle" aria-hidden="true">
-    <div class="plot-modal-card" role="document">
-      <div class="plot-modal-header">
-        <h3 class="plot-modal-title" id="plotModalTitle">Plot</h3>
-        <button class="plot-modal-close" type="button" aria-label="Close">×</button>
-      </div>
-      <div class="plot-modal-body" id="plotModalBody"></div>
-    </div>
-  </div>
-
-  <footer class="site-footer">
-    <div class="section-inner footer-row">
-      <span>Webwright: A terminal-native harness for web agents.</span>
-      <span class="footer-links">
-        <a href="https://github.com/microsoft/Webwright" target="_blank" rel="noopener">GitHub</a>
-        <span aria-hidden="true">·</span>
-        <a href="https://www.microsoft.com/en-us/research/articles/webwright-a-terminal-is-all-you-need-for-web-agents/" target="_blank" rel="noopener">Microsoft Research blog</a>
+  <footer>
+    <div class="container">
+      <span>CUAWright · 2026</span>
+      <span>
+        <a href="https://arxiv.org/abs/2610.04116" target="_blank" rel="noopener">Paper</a> ·
+        <a href="https://github.com/microsoft/Webwright" target="_blank" rel="noopener">GitHub</a> ·
+        <a href="webwright.html">Webwright</a>
       </span>
     </div>
   </footer>
 
   <script>
-    const demos = {
-      "flight-with": {
-        title: "Flights with skill",
-        mode: "Generated CLI Tool",
-        modeClass: "tool",
-        summary: "Skill-guided Google Flights comparison for a Hong Kong to Jeju trip.",
-        proof: "Shows a generated flight skill being selected and reused as a task-specific CLI-style workflow.",
-        src: "showcase/index_flight_with.html"
-      },
-      "flight-without": {
-        title: "Flights without skill",
-        mode: "Baseline (no tool)",
-        modeClass: "tool",
-        summary: "Baseline Google Flights workflow for the same itinerary, built without a dedicated flight skill.",
-        proof: "Pairs with the generated flight skill run to show why reusable domain tools matter.",
-        src: "showcase/index_flight_without.html"
-      },
-      "ticket-with": {
-        title: "Ticketmaster with skill",
-        mode: "Generated CLI Tool",
-        modeClass: "tool",
-        summary: "Skill-guided Ticketmaster comparison for Seattle classical concerts under a budget.",
-        proof: "Shows the Ticketmaster skill guiding a reusable event-search and comparison workflow.",
-        src: "showcase/index_ticket_with.html"
-      },
-      "ticket-without": {
-        title: "Ticketmaster without skill",
-        mode: "Baseline (no tool)",
-        modeClass: "tool",
-        summary: "Baseline Ticketmaster workflow that assembles search and comparison steps manually.",
-        proof: "Pairs with the Ticketmaster skill run as the no-tool baseline for the same task family.",
-        src: "showcase/index_ticket_without.html"
-      }
-    };
-
-    const tabs = Array.from(document.querySelectorAll(".tab"));
-    const frame = document.querySelector("#demoFrame");
-    const frameTitle = document.querySelector("#frameTitle");
-    const frameMode = document.querySelector("#frameMode");
-    const frameSummary = document.querySelector("#frameSummary");
-    const frameProof = document.querySelector("#frameProof");
-
-    function activateDemo(id, updateHash = true) {
-      const demo = demos[id] || demos["flight-with"];
-      const activeId = demos[id] ? id : "flight-with";
-
-      tabs.forEach((tab) => {
-        tab.setAttribute("aria-selected", String(tab.dataset.demo === activeId));
-      });
-
-      frame.src = demo.src;
-      frame.title = demo.title;
-      frameTitle.textContent = demo.title;
-      frameMode.textContent = demo.mode;
-      frameMode.className = `frame-mode ${demo.modeClass || ""}`.trim();
-      frameSummary.textContent = demo.summary;
-      frameProof.textContent = demo.proof;
-
-      if (updateHash) {
-        history.replaceState(null, "", `#${activeId}`);
-      }
+    // name, model, other harness, other score, CUAWright score
+    const results = [
+      ["OSWorld-V2", "GPT-5.6 Sol", "GPT-5.6 Sol alone", 62.7, 67.9],
+      ["OSWorld-V2", "GPT-5.5", "Official OSWorld agent", 47.5, 63.2],
+      ["Online-Mind2Web", "GPT-5.4", "GUI agent", 83.4, 88.1],
+      ["Odysseys", "GPT-5.4", "GUI agent", 33.5, 77.5],
+      ["WeaveBench", "GPT-5.5", "Codex CLI", 35.1, 53.5],
+      ["BenchCAD", "GPT-5.5", "Official, with tools", 55.8, 79.0],
+      ["CADGenBench", "GPT-5.6 Sol", "GPT-5.6 Sol alone", 53.2, 55.7]
+    ];
+    const res = document.getElementById("res");
+    const foot = res.querySelector(".res-foot");
+    results.forEach(([name, model, other, base, ours]) => {
+      const row = document.createElement("div");
+      row.className = "res-row";
+      row.innerHTML = `
+        <div class="b">${name}<small>vs. ${other}</small></div>
+        <div class="m">${model}</div>
+        <div class="meter" title="${other}: ${base} · CUAWright: ${ours}">
+          <div class="u" data-w="${ours}" style="width:0"></div>
+          <div class="o" data-w="${base}" style="width:0"></div>
+          <span class="lab o-l" style="left:calc(${base}% - 40px)">${base.toFixed(1)}</span>
+          <span class="lab u-l">${ours.toFixed(1)}</span>
+        </div>
+        <div class="g">+${(ours - base).toFixed(1)}</div>`;
+      res.insertBefore(row, foot);
+    });
+    const fill = () => res.querySelectorAll("[data-w]").forEach((el) => { el.style.width = el.dataset.w + "%"; });
+    if ("IntersectionObserver" in window) {
+      const io = new IntersectionObserver((entries) => {
+        if (entries.some((e) => e.isIntersecting)) { fill(); io.disconnect(); }
+      }, { threshold: 0.2 });
+      io.observe(res);
+    } else {
+      fill();
     }
 
-    tabs.forEach((tab) => {
-      tab.addEventListener("click", () => activateDemo(tab.dataset.demo));
-    });
+    // Illustrative hero sessions, typed out line by line.
+    const sessions = [
+      { title: "cuawright desktop", lines: [
+        ["c", "# task: total Q3 sales into a new sheet, then save"],
+        ["p", "$ python inspect_sheet.py sales.xlsx"],
+        ["", "found 4 sheets, 1,284 rows in 'Q3'"],
+        ["p", "$ python add_totals.py --sheet Q3"],
+        ["", "wrote 'Totals' with SUMIF by region"],
+        ["p", "$ python check_cells.py"],
+        ["ok", "✓ 6/6 totals match source rows"],
+        ["p", "$ python /opt/cuawright-tools/submit.py"],
+        ["ok", "submitted"]
+      ]},
+      { title: "cuawright web", lines: [
+        ["c", "# task: cheapest nonstop SEA → JFK on Aug 15"],
+        ["p", "$ python explore_search.py"],
+        ["", "saved screenshots/results_0.png"],
+        ["w", "! filter panel lazy-loads; waiting for it"],
+        ["p", "$ python final_script.py --nonstop"],
+        ["", "12 flights · cheapest $214 · 6:05 AM"],
+        ["p", "$ python -m cuawright.webwright.tools.self_reflection"],
+        ["ok", "✓ Status: success"]
+      ]}
+    ];
+    const term = document.getElementById("term");
+    const termTitle = document.getElementById("term-title");
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const esc = (t) => t.replace(/[&<>]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch]));
+    const render = (lines, partial) => lines.map(([cls, text]) => `<span class="${cls}">${esc(text)}</span>`).join("\n")
+      + (partial ? "" : "") + '<span class="cursor"></span>';
 
-    window.addEventListener("hashchange", () => {
-      const requestedDemo = window.location.hash.slice(1);
-      if (demos[requestedDemo]) {
-        activateDemo(requestedDemo, false);
+    async function play(i) {
+      const s = sessions[i % sessions.length];
+      termTitle.textContent = s.title;
+      if (reduce) { term.innerHTML = render(s.lines); return; }
+      const shown = [];
+      for (const [cls, text] of s.lines) {
+        if (cls === "p") {
+          for (let k = 1; k <= text.length; k++) {
+            term.innerHTML = render([...shown, [cls, text.slice(0, k)]]);
+            await new Promise((r) => setTimeout(r, 22));
+          }
+        }
+        shown.push([cls, text]);
+        term.innerHTML = render(shown);
+        await new Promise((r) => setTimeout(r, cls === "p" ? 380 : 220));
       }
-    });
-
-    const initialDemo = window.location.hash.slice(1);
-    if (demos[initialDemo]) {
-      activateDemo(initialDemo, false);
+      await new Promise((r) => setTimeout(r, 2600));
+      play(i + 1);
     }
+    play(0);
 
-    // Metric plot modal
-    const plotModal = document.getElementById("plotModal");
-    const plotModalTitle = document.getElementById("plotModalTitle");
-    const plotModalBody = document.getElementById("plotModalBody");
-    const plotModalClose = plotModal.querySelector(".plot-modal-close");
-
-    function openPlotModal(src, title) {
-      plotModalTitle.textContent = title || "Plot";
-      plotModalBody.innerHTML = "";
-      const img = document.createElement("img");
-      img.src = src;
-      img.alt = title || "Plot";
-      plotModalBody.appendChild(img);
-      plotModal.classList.add("is-open");
-      plotModal.setAttribute("aria-hidden", "false");
-    }
-
-    function closePlotModal() {
-      plotModal.classList.remove("is-open");
-      plotModal.setAttribute("aria-hidden", "true");
-      plotModalBody.innerHTML = "";
-    }
-
-    document.querySelectorAll(".metric-clickable").forEach((el) => {
-      el.addEventListener("click", () => {
-        const src = el.getAttribute("data-plot");
-        const title = el.getAttribute("data-plot-title");
-        if (src) openPlotModal(src, title);
-      });
-    });
-
-    plotModalClose.addEventListener("click", closePlotModal);
-    plotModal.addEventListener("click", (e) => {
-      if (e.target === plotModal) closePlotModal();
-    });
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && plotModal.classList.contains("is-open")) {
-        closePlotModal();
+    const copy = document.querySelector("[data-copy]");
+    copy.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(document.querySelector("#bibtex code").textContent);
+        copy.textContent = "copied";
+      } catch (e) {
+        copy.textContent = "select to copy";
       }
+      setTimeout(() => { copy.textContent = "copy"; }, 1600);
     });
   </script>
 </body>

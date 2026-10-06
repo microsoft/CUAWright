@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CUAWright | OSWorld-V2 Trajectories</title>
+  <meta name="description" content="Step-by-step trajectories of CUAWright solving OSWorld-V2 desktop tasks with GPT-5.5.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script>
+    // Dark by default to match the project page; ?theme=light for the paper style.
+    (function () {
+      var q = new URLSearchParams(location.search);
+      if (q.get("theme") !== "light") document.documentElement.setAttribute("data-theme", "dark");
+    })();
+  </script>
+  <style>
+    :root {
+      --paper: #ffffff;
+      --paper-2: #f4f4f2;
+      --ink: #0a0a0c;
+      --ink-2: #1a1a1d;
+      --muted: #6b6b68;
+      --line: #d8d6d0;
+      --line-dark: #a6a39b;
+      --navy: #1b4f8b;
+      --navy-soft: #dee7f2;
+      --highlight: #ffe16a;
+      --brand: "Archivo Black", "Helvetica Neue", "Arial Black", sans-serif;
+      --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+      --sans: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+      --mono: "IBM Plex Mono", SFMono-Regular, Menlo, monospace;
+      --maxw: 1320px;
+      --pad: 56px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    html, body { background: var(--paper); color: var(--ink-2); }
+    body { font-family: var(--sans); font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+    ::selection { background: var(--highlight); color: var(--ink); }
+    a { color: var(--ink); text-underline-offset: 3px; text-decoration-color: var(--line-dark); }
+    a:hover { color: var(--navy); }
+    button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+    button:focus-visible, a:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+    .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 var(--pad); }
+
+    nav.top { position: sticky; top: 0; z-index: 60; background: rgba(255,255,255,0.94); backdrop-filter: saturate(140%) blur(8px); border-bottom: 1px solid var(--line); }
+    nav.top .row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; }
+    nav.top .brand { font-family: var(--brand); font-size: 18px; letter-spacing: -0.015em; color: var(--ink); text-decoration: none; }
+    nav.top .brand span { font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-left: 10px; }
+    nav.top a.back { font-size: 13px; font-weight: 500; color: var(--muted); text-decoration: none; }
+    nav.top a.back:hover { color: var(--ink); }
+
+    header.page { padding: 34px 0 18px; }
+    .overline { font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+    .overline b { color: var(--navy); font-weight: 600; }
+    header.page h1 { margin-top: 10px; font-family: var(--brand); font-weight: 400; font-size: clamp(30px, 3.6vw, 44px); line-height: 1.02; letter-spacing: -0.02em; color: var(--ink); }
+    header.page p.bare { color: var(--muted); font-size: 14.5px; }
+    header.page code { font-family: var(--mono); font-size: 0.9em; background: var(--paper-2); padding: 1px 4px; }
+    header.page p { margin-top: 10px; max-width: 760px; font-size: 15.5px; color: var(--ink-2); }
+
+    /* task picker */
+    .picker { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-top: 2px solid var(--ink); border-left: 1px solid var(--line); }
+    .pick { text-align: left; padding: 10px 12px 12px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); min-width: 0; transition: background .15s; }
+    .pick:hover { background: var(--paper-2); }
+    .pick .num { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.16em; color: var(--muted); }
+    .pick .t { display: block; margin-top: 2px; font-family: var(--display); font-weight: 700; font-size: 14px; line-height: 1.25; color: var(--ink); }
+    .pick[aria-current="true"] { background: var(--ink); }
+    .pick[aria-current="true"] .t { color: var(--paper); }
+    .pick[aria-current="true"] .num { color: var(--highlight); }
+
+    /* task header */
+    .task { padding: 26px 0 8px; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 34px; }
+    .task h2 { font-family: var(--brand); font-weight: 400; font-size: clamp(24px, 2.6vw, 31px); line-height: 1.1; letter-spacing: -0.02em; color: var(--ink); }
+    .meta { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 7px; border: 1px solid var(--line-dark); color: var(--ink-2); }
+    .tag.osw { border-color: var(--navy); color: var(--navy); font-weight: 700; }
+    .tag.score { background: var(--highlight); border-color: var(--ink); color: var(--ink); font-weight: 700; }
+    .summary { margin-top: 14px; font-size: 16.5px; line-height: 1.6; color: var(--ink); max-width: 680px; }
+    details.instr { margin-top: 14px; border-top: 1px dotted var(--line-dark); padding-top: 10px; max-width: 680px; }
+    details.instr summary { cursor: pointer; font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--navy); }
+    details.why ul { margin-top: 8px; padding-left: 18px; font-size: 14.5px; line-height: 1.6; color: var(--ink-2); }
+    details.why li + li { margin-top: 4px; }
+    details.instr + details.instr { margin-top: 10px; }
+    details.instr p { margin-top: 8px; font-size: 14px; line-height: 1.6; white-space: pre-wrap; color: var(--ink-2); }
+    h4.label { margin: 0 0 8px; font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink); }
+    ol.keys { list-style: none; border-top: 2px solid var(--ink); }
+    ol.keys li { border-bottom: 1px dashed var(--line); }
+    ol.keys button { width: 100%; display: grid; grid-template-columns: 52px minmax(0, 1fr) 18px; gap: 8px; align-items: baseline; padding: 7px 4px; text-align: left; font-size: 14px; line-height: 1.4; }
+    ol.keys button:hover { background: var(--paper-2); }
+    ol.keys .sn { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--navy); }
+    ol.keys .ic { font-size: 11px; color: var(--muted); }
+    ol.keys button[aria-current="true"] { background: var(--navy-soft); }
+
+    /* player */
+    .player { margin-top: 26px; border-top: 2px solid var(--ink); }
+    .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 0; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; background: var(--ink); color: var(--paper); border: 1.5px solid var(--ink); }
+    .btn:hover { background: var(--navy); border-color: var(--navy); }
+    .btn.ghost { background: transparent; color: var(--ink); }
+    .btn.ghost:hover { background: var(--ink); color: var(--paper); }
+    .btn:disabled { opacity: .35; cursor: default; }
+    .stepno { font-family: var(--brand); font-size: 20px; color: var(--ink); margin: 0 6px; min-width: 120px; }
+    .stepno small { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: 0.06em; }
+    .hint { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--muted); letter-spacing: 0.06em; }
+    .strip { display: flex; flex-wrap: wrap; gap: 2px; padding-bottom: 12px; }
+    .strip button { width: 11px; height: 18px; background: var(--paper-2); border: 1px solid var(--line); padding: 0; }
+    .strip button.img { background: #c9d6e6; border-color: #9fb3cc; }
+    .strip button.key { background: var(--highlight); border-color: #c9a92c; }
+    .strip button.note { background: #e5e2db; }
+    .strip button[aria-current="true"] { background: var(--ink); border-color: var(--ink); transform: scaleY(1.25); }
+    .legend { display: flex; flex-wrap: wrap; gap: 14px; padding-bottom: 12px; font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+    .legend i { display: inline-block; width: 10px; height: 12px; margin-right: 5px; vertical-align: -2px; border: 1px solid var(--line); background: var(--paper-2); }
+    .legend i.k { background: var(--highlight); border-color: #c9a92c; }
+    .legend i.m { background: #c9d6e6; border-color: #9fb3cc; }
+
+    .step { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; padding: 16px 0 30px; border-top: 1px solid var(--line); }
+    .step.noimg { grid-template-columns: minmax(0, 1fr); }
+    .keynote { grid-column: 1 / -1; padding: 8px 12px; background: var(--highlight); font-family: var(--display); font-weight: 600; font-size: 15px; color: var(--ink); }
+    .keynote b { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; margin-right: 8px; }
+    .block { min-width: 0; margin-bottom: 16px; }
+    .block:last-child { margin-bottom: 0; }
+    .thought { font-size: 14.5px; line-height: 1.6; color: var(--ink-2); border-left: 3px solid var(--navy); padding: 2px 0 2px 12px; }
+    .thought p + p { margin-top: 8px; }
+    .thought strong { font-family: var(--display); font-weight: 700; color: var(--ink); }
+    .empty { font-size: 13.5px; color: var(--muted); font-style: italic; }
+    pre.term { padding: 12px 14px; background: var(--ink-2); color: #e8e8e5; font-family: var(--mono); font-size: 12px; line-height: 1.6; overflow: auto; white-space: pre; max-height: 420px; }
+    pre.term .p { color: var(--highlight); }
+    pre.out { padding: 10px 14px; background: var(--paper-2); border: 1px solid var(--line); font-family: var(--mono); font-size: 11.5px; line-height: 1.55; overflow: auto; white-space: pre-wrap; word-break: break-word; max-height: 300px; color: var(--ink-2); }
+    pre.note { padding: 12px 14px; border: 1px dashed var(--line-dark); font-family: var(--mono); font-size: 12px; line-height: 1.6; white-space: pre-wrap; max-height: 420px; overflow: auto; }
+    .exit { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-left: 8px; letter-spacing: 0.04em; text-transform: none; font-weight: 500; }
+    .exit.bad { color: #a8321e; }
+    .shot { border: 1.5px solid var(--ink); background: var(--paper-2); }
+    .shot a { display: block; }
+    .shot img { display: block; width: 100%; height: auto; max-height: 76vh; object-fit: contain; background: #fff; }
+    .shot figcaption { padding: 6px 10px; font-family: var(--mono); font-size: 10.5px; color: var(--muted); border-top: 1px solid var(--line); }
+    .imgcol { position: sticky; top: 72px; align-self: start; }
+
+    footer { margin-top: 20px; padding: 16px 0 40px; border-top: 2px solid var(--ink); font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; color: var(--muted); }
+    footer p { max-width: 900px; line-height: 1.7; }
+
+    /* dark console theme (variant-b) */
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --paper: #0b0e14;
+      --paper-2: #141923;
+      --ink: #e8ecf3;
+      --ink-2: #b5bdcb;
+      --muted: #7d8697;
+      --line: #232a37;
+      --line-dark: #2f3747;
+      --navy: #5ee6a0;
+      --navy-soft: rgba(94, 230, 160, 0.12);
+      --highlight: #f5b45b;
+      --brand: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+      --display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+      --sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+      --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    }
+    [data-theme="dark"] nav.top { background: rgba(11, 14, 20, 0.85); }
+    [data-theme="dark"] header.page h1, [data-theme="dark"] .task h2 { font-weight: 700; }
+    [data-theme="dark"] .tag.score, [data-theme="dark"] .keynote { color: #0b0e14; }
+    [data-theme="dark"] .pick[aria-current="true"] { background: var(--paper-2); box-shadow: inset 0 0 0 1px var(--navy); }
+    [data-theme="dark"] .pick[aria-current="true"] .t { color: var(--ink); }
+    [data-theme="dark"] .pick[aria-current="true"] .num { color: var(--navy); }
+    [data-theme="dark"] pre.term { background: #07090d; border: 1px solid var(--line); }
+    [data-theme="dark"] .btn { background: var(--navy); border-color: var(--navy); color: #0b0e14; }
+    [data-theme="dark"] .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line-dark); }
+    [data-theme="dark"] .btn.ghost:hover { border-color: var(--navy); color: var(--navy); background: transparent; }
+    [data-theme="dark"] .strip button.img { background: #2c4a6e; border-color: #3f6696; }
+    [data-theme="dark"] .legend i.m { background: #2c4a6e; border-color: #3f6696; }
+    [data-theme="dark"] .strip button.key, [data-theme="dark"] .legend i.k { border-color: #b98330; }
+    [data-theme="dark"] .strip button.note { background: #2a2f3a; }
+    [data-theme="dark"] .strip button[aria-current="true"] { background: var(--ink); }
+    [data-theme="dark"] .shot { border-color: var(--line-dark); }
+    [data-theme="dark"] .exit.bad { color: #ff8a7a; }
+    [data-theme="dark"] .player, [data-theme="dark"] ol.keys, [data-theme="dark"] .picker, [data-theme="dark"] footer { border-top-color: var(--line-dark); }
+
+    @media (max-width: 1100px) { .picker { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 960px) {
+      :root { --pad: 28px; }
+      .task, .step { grid-template-columns: minmax(0, 1fr); }
+      .imgcol { position: static; order: -1; }
+      .hint { display: none; }
+    }
+    @media (max-width: 600px) {
+      :root { --pad: 16px; }
+      .picker { grid-template-columns: minmax(0, 1fr); }
+      nav.top .brand span { display: none; }
+      .strip button { width: 9px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="top" aria-label="Primary navigation">
+    <div class="wrap row">
+      <a class="brand" href="../../index.html">CUAWright<span>Trajectories</span></a>
+      <a class="back" href="../../index.html#trajectories">← Back to project page</a>
+    </div>
+  </nav>
+
+  <header class="page">
+    <div class="wrap">
+      <div class="overline"><b>OSWorld-V2</b> · GPT-5.5, reasoning effort xhigh · CUAWright desktop runtime</div>
+      <h1>Ten desktop trajectories, step by step</h1>
+      <p>Every step is one model call: the model's reasoning summary, the shell command it ran in the Ubuntu VM, the output, and any screenshot it looked at. Pick a task, then step through with the buttons, the timeline, or the ← / → keys. Yellow marks the key moments.</p>
+      <p class="bare">The agent has one tool, <code>run_command</code>. It gets no screenshot unless it asks for one, and it works without multi-agent orchestration or a hand-built memory system. Every script, helper, and check you see here, it wrote itself.</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="picker" id="picker" role="tablist" aria-label="Trajectories"></div>
+
+    <section class="task" aria-live="polite">
+      <div>
+        <h2 id="t-title"></h2>
+        <div class="meta" id="t-meta"></div>
+        <p class="summary" id="t-summary"></p>
+        <details class="instr why"><summary>Why this run is interesting</summary><ul id="t-why"></ul></details>
+        <details class="instr"><summary>Original task instruction</summary><p id="t-instr"></p></details>
+      </div>
+      <div>
+        <h4 class="label">Key moments</h4>
+        <ol class="keys" id="t-keys"></ol>
+      </div>
+    </section>
+
+    <section class="player" aria-label="Step player">
+      <div class="controls">
+        <button class="btn ghost" id="prev" type="button">← Prev</button>
+        <span class="stepno" id="stepno"></span>
+        <button class="btn ghost" id="next" type="button">Next →</button>
+        <button class="btn" id="nextkey" type="button">Next key moment ⇥</button>
+        <span class="hint">← / → steps · K next key moment</span>
+      </div>
+      <div class="strip" id="strip" aria-label="Timeline"></div>
+      <div class="legend"><span><i class="k"></i>key moment</span><span><i class="m"></i>screenshot or image viewed</span><span><i></i>command</span></div>
+      <article class="step" id="step"></article>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <p>From one CUAWright run on all 105 OSWorld-V2 tasks with GPT-5.5 (reasoning effort xhigh). Scores come from the official OSWorld-V2 evaluator. Long outputs are cut short. Internal hostnames, IP addresses, and email addresses are redacted.</p>
+    </div>
+  </footer>
+
+  <script src="meta.js"></script>
+  <script>
+  (function () {
+    const META = window.TRACE_META;
+    const byId = Object.fromEntries(META.map(m => [m.id, m]));
+    const $ = id => document.getElementById(id);
+    // ?back=variant-b.html returns to that version of the project page.
+    const back = new URLSearchParams(location.search).get("back");
+    if (back && /^[\w.-]+\.html$/.test(back)) {
+      document.querySelector("nav.top .brand").href = `../../${back}`;
+      document.querySelector("nav.top a.back").href = `../../${back}#trajectories`;
+    }
+    let cur = null, idx = 0;
+
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    const md = s => esc(s).split(/\n{2,}/).map(p => "<p>" + p.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\n/g, "<br>") + "</p>").join("");
+
+    // picker
+    $("picker").innerHTML = META.map((m, i) =>
+      `<button class="pick" role="tab" data-id="${m.id}"><span class="num">OSW2 TASK ${m.id} · ${m.apps[0].toUpperCase()}</span><span class="t">${esc(m.title)}</span></button>`
+    ).join("");
+    $("picker").addEventListener("click", e => {
+      const b = e.target.closest(".pick"); if (b) go(b.dataset.id, null);
+    });
+
+    function loadData(id) {
+      return new Promise((res, rej) => {
+        if (window.TRACES && window.TRACES[id]) return res(window.TRACES[id]);
+        const s = document.createElement("script");
+        s.src = `data/${id}.js`;
+        s.onload = () => res(window.TRACES[id]);
+        s.onerror = rej;
+        document.head.appendChild(s);
+      });
+    }
+
+    async function go(id, stepN) {
+      if (!byId[id]) id = META[0].id;
+      const m = byId[id];
+      const d = await loadData(id);
+      cur = { m, d, keys: new Map(m.keys.map(([n, t]) => [n, t])) };
+      document.querySelectorAll(".pick").forEach(b => b.setAttribute("aria-current", b.dataset.id === id));
+      $("t-title").textContent = m.title;
+      document.title = `CUAWright | OSWorld-V2 task ${m.id}: ${m.title}`;
+      const imgs = d.steps.filter(s => s.img).length;
+      $("t-meta").innerHTML = `<span class="tag osw">OSWorld-V2 task ${d.id}</span><span class="tag score">Score ${(+d.score).toFixed(2)}</span><span class="tag">${d.steps.length} steps</span><span class="tag">${imgs} images viewed</span>` + m.apps.map(a => `<span class="tag">${esc(a)}</span>`).join("");
+      $("t-summary").textContent = m.summary;
+      $("t-instr").textContent = d.instruction;
+      $("t-why").innerHTML = (m.why || []).map(w => `<li>${esc(w)}</li>`).join("");
+      $("t-keys").innerHTML = m.keys.map(([n, t]) => {
+        const s = d.steps.find(x => x.n === n);
+        return `<li><button type="button" data-n="${n}"><span class="sn">Step ${n}</span><span>${esc(t)}</span><span class="ic">${s && s.img ? "▣" : ""}</span></button></li>`;
+      }).join("");
+      $("strip").innerHTML = d.steps.map((s, i) => {
+        const cls = [cur.keys.has(s.n) ? "key" : "", s.img ? "img" : "", (!s.c && s.m) ? "note" : ""].filter(Boolean).join(" ");
+        const label = `Step ${s.n}` + (cur.keys.has(s.n) ? `: ${cur.keys.get(s.n)}` : "");
+        return `<button type="button" class="${cls}" data-i="${i}" title="${esc(label)}" aria-label="${esc(label)}"></button>`;
+      }).join("");
+      const start = stepN != null ? d.steps.findIndex(s => s.n === stepN) : 0;
+      show(start < 0 ? 0 : start, stepN == null);
+    }
+
+    function show(i, quiet) {
+      const d = cur.d; idx = Math.max(0, Math.min(d.steps.length - 1, i));
+      const s = d.steps[idx];
+      history.replaceState(null, "", `#${d.id}/${s.n}`);
+      $("stepno").innerHTML = `Step ${s.n} <small>/ ${d.steps[d.steps.length - 1].n}</small>`;
+      $("prev").disabled = idx === 0; $("next").disabled = idx === d.steps.length - 1;
+      $("nextkey").disabled = !d.steps.slice(idx + 1).some(x => cur.keys.has(x.n));
+      document.querySelectorAll("#strip button").forEach(b => b.setAttribute("aria-current", +b.dataset.i === idx));
+      document.querySelectorAll("#t-keys button").forEach(b => b.setAttribute("aria-current", +b.dataset.n === s.n));
+
+      let left = "";
+      left += `<div class="block"><h4 class="label">Reasoning summary</h4>${s.r ? `<div class="thought">${md(s.r)}</div>` : `<p class="empty">No reasoning summary for this step.</p>`}</div>`;
+      if (s.c) {
+        left += `<div class="block"><h4 class="label">Command</h4><pre class="term"><span class="p">$</span> ${esc(s.c)}</pre></div>`;
+        const ex = s.x == null ? "" : `<span class="exit ${s.x === 0 ? "" : "bad"}">exit ${s.x}</span>`;
+        left += `<div class="block"><h4 class="label">Output${ex}</h4>${s.o.trim() ? `<pre class="out">${esc(s.o)}</pre>` : `<p class="empty">(no output)</p>`}</div>`;
+      } else if (s.m) {
+        left += `<div class="block"><h4 class="label">Handoff note (written before context compaction)</h4><pre class="note">${esc(s.m)}</pre></div>`;
+      }
+      const key = cur.keys.has(s.n) ? `<div class="keynote"><b>Key moment</b>${esc(cur.keys.get(s.n))}</div>` : "";
+      const img = s.img ? `<div class="imgcol"><h4 class="label">Image the agent viewed</h4><figure class="shot"><a href="${s.img}" target="_blank" rel="noopener"><img src="${s.img}" alt="Image viewed by the agent at step ${s.n}"></a><figcaption>Click to open full size</figcaption></figure></div>` : "";
+      const el = $("step");
+      el.className = "step" + (s.img ? "" : " noimg");
+      el.innerHTML = key + `<div>${left}</div>` + img;
+      if (!quiet) {
+        const top = document.querySelector(".player").getBoundingClientRect().top;
+        if (top < 0 || top > window.innerHeight * 0.6) document.querySelector(".player").scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+
+    $("prev").onclick = () => show(idx - 1);
+    $("next").onclick = () => show(idx + 1);
+    const nextKey = () => {
+      const j = cur.d.steps.findIndex((x, k) => k > idx && cur.keys.has(x.n));
+      if (j >= 0) show(j);
+    };
+    $("nextkey").onclick = nextKey;
+    $("strip").addEventListener("click", e => { const b = e.target.closest("button"); if (b) show(+b.dataset.i); });
+    $("t-keys").addEventListener("click", e => {
+      const b = e.target.closest("button"); if (!b) return;
+      show(cur.d.steps.findIndex(x => x.n === +b.dataset.n));
+    });
+    document.addEventListener("keydown", e => {
+      if (e.target.closest("input, textarea, summary") || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "ArrowLeft") { show(idx - 1); e.preventDefault(); }
+      else if (e.key === "ArrowRight") { show(idx + 1); e.preventDefault(); }
+      else if (e.key === "k" || e.key === "K") nextKey();
+    });
+
+    const [hid, hstep] = location.hash.slice(1).split("/");
+    go(hid || META[0].id, hstep ? +hstep : null);
+  })();
+  </script>
+</body>
+</html>
