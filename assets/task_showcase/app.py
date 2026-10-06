@@ -47,7 +47,7 @@ def list_tasks() -> list[dict]:
         info_path = d / "task.json"
         if not info_path.exists():
             continue
-        info = json.loads(info_path.read_text())
+        info = json.loads(info_path.read_text(encoding="utf-8"))
         info["short_id"] = d.name
         out.append(info)
     return out
@@ -198,7 +198,7 @@ def task_view(short_id: str):
     info_path = task_dir / "task.json"
     if not info_path.exists():
         abort(404)
-    info = json.loads(info_path.read_text())
+    info = json.loads(info_path.read_text(encoding="utf-8"))
     info["short_id"] = short_id
     steps, final = build_steps(task_dir)
     # last-modified timestamp of the run for the "Updated" line
@@ -206,13 +206,21 @@ def task_view(short_id: str):
     log_path = task_dir / "final_script_log.txt"
     if log_path.exists():
         ts = _dt.datetime.fromtimestamp(log_path.stat().st_mtime)
-        updated = ts.strftime("%-m/%-d/%Y, %-I:%M:%S %p")
+        # Built by hand rather than with strftime: the "%-m" no-pad directive is a
+        # glibc extension and raises ValueError on Windows, where the equivalent is
+        # "%#m". Formatting the fields directly is portable everywhere.
+        hour12 = ts.hour % 12 or 12
+        updated = (
+            f"{ts.month}/{ts.day}/{ts.year}, "
+            f"{hour12}:{ts.minute:02d}:{ts.second:02d} "
+            f"{'AM' if ts.hour < 12 else 'PM'}"
+        )
     else:
         updated = ""
     # Per-task structured report lives next to the run artifacts.
     report_path = task_dir / "report.json"
     if report_path.exists():
-        report = json.loads(report_path.read_text())
+        report = json.loads(report_path.read_text(encoding="utf-8"))
     else:
         report = {}
     sources = report.get("sources", [])
