@@ -233,6 +233,31 @@ trajectory verification.
 | `--task-id` | Output subfolder name. |
 | `-o` | Output directory. |
 
+### Other models via OpenRouter
+
+Any model accessible through [OpenRouter](https://openrouter.ai/) — including Gemini, Mistral, Llama, and others — works by using `model_class: openrouter` and setting `model_name` to the OpenRouter model ID. A ready-to-use config for Gemini is included:
+
+```bash
+export OPENROUTER_API_KEY=<your-key>
+python -m webwright.run.cli \
+    -c base.yaml -c model_gemini_openrouter.yaml \
+    -t "Search for flights from SEA to JFK on 2026-08-15 to 2026-08-20" \
+    --start-url https://www.google.com/flights \
+    --task-id demo_gemini \
+    -o outputs/default
+```
+
+To use a different OpenRouter model, override `model.model_name` inline:
+
+```bash
+python -m webwright.run.cli \
+    -c base.yaml -c model_openrouter.yaml \
+    model.model_name=mistralai/mistral-large \
+    -t "..." -o outputs/default
+```
+
+Available config files in `src/webwright/config/`: `model_openai.yaml`, `model_claude.yaml`, `model_openrouter.yaml`, `model_gemini_openrouter.yaml`.
+
 ---
 
 <a id="desktop-quick-start"></a>
