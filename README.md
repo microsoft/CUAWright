@@ -5,6 +5,8 @@
 > `cuawright desktop` for desktop tasks. Existing `webwright` commands and Python
 > imports still work.
 
+[English](README.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
+
 <p align="center">
   <img src="assets/cuawright_logo.svg" alt="CUAWright logo" width="320">
 </p>
