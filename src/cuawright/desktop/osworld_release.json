@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "release": "osworld-v2-2026.08.08",
+  "source": {
+    "repository": "https://github.com/xlang-ai/OSWorld-V2.git",
+    "tag": "v2026.08.08",
+    "commit": "d578d2d4e0dc82b43e270fdaa7fa89d9708cd154"
+  },
+  "website": {
+    "repository": "https://github.com/Task-Web/OSWorld-web.git",
+    "tag": "v2026.08.08",
+    "host_suffix": "site.hku.icu"
+  },
+  "tasks": {
+    "repository": "xlangai/osworld_v2_tasks",
+    "repo_type": "dataset",
+    "tag": "v2026.08.08",
+    "count": 108,
+    "manifest_path": "manifests/task_hashes.json",
+    "manifest_sha256": "42f8f6f8939b8712997d5891456a575f8a2a5f53465e9e3e6747af5d6efd0915"
+  },
+  "assets": {
+    "repository": "xlangai/osworld_v2_assets_gated",
+    "repo_type": "dataset",
+    "tag": "v2026.08.08",
+    "commit": "acad110ef3136405f95434b54862bf9066176c2a",
+    "file_count": 1061
+  },
+  "vm": {
+    "repository": "xlangai/v2-image",
+    "repo_type": "dataset",
+    "tag": "osworld-v2.1",
+    "artifact": "osworld-v2-ubuntu-x86.qcow2.zip",
+    "artifact_size": 14891811084,
+    "artifact_sha256": "14b08aa7ba6c023ecb91d46de8df5de32af4d1d6bd75ea925519caf9677fc8b3",
+    "runtime_image": "happysixd/osworld-docker",
+    "commit": "6e16459a2feb5a8f1ed65babcfe7a2a6205d049d"
+  }
+}

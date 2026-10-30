@@ -4,8 +4,8 @@ import json
 
 import httpx
 
-from webwright.cache import ScriptCache, make_fingerprint
-from webwright.run.cli import _try_replay_cache
+from cuawright.webwright.cache import ScriptCache, make_fingerprint
+from cuawright.webwright.run.cli import _try_replay_cache
 
 
 def _fingerprint_config() -> dict:

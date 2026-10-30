@@ -1,0 +1,5 @@
+CUAWright includes the Webwright browser runtime (MIT; see LICENSE) and
+the CUAWright OSWorld release runtime imported from commit
+47984a49 of the standalone CUAWright OSWorld release.
+The imported desktop runtime is licensed under Apache-2.0; see
+licenses/OSWorld-runtime-APACHE-2.0.txt.

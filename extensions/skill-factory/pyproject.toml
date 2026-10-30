@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cuawright-skill-factory"
+version = "0.2.0"
+description = "Optional verified browser-skill learning and reuse for CUAWright"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = ["cuawright==0.2.0"]
+
+[project.scripts]
+cuawright-skill-factory = "cuawright.webwright.skill_factory.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["cuawright.webwright.skill_factory*", "cuawright.webwright.tools"]
+namespaces = true
+
+[tool.setuptools.package-data]
+"cuawright.webwright.skill_factory" = [
+    "README.md", "examples/**/*.md", "examples/**/*.json",
+    "examples/**/*.yaml", "examples/**/*.sh", "examples/*.md",
+    "examples/*.json", "examples/*.yaml", "examples/*.sh",
+]

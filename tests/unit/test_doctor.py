@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from webwright.run.doctor import (
+from cuawright.webwright.run.doctor import (
     check_chromium,
     check_openai_key,
     check_playwright,

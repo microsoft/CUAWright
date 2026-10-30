@@ -1,0 +1,65 @@
+[
+ {
+  "params": {
+   "origin_city": "Los Angeles",
+   "origin_code": "LAX",
+   "destination_city": "Chicago",
+   "destination_code": "ORD",
+   "date": "2026-08-15"
+  },
+  "start_url": "https://www.google.com/flights",
+  "output_schema": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   }
+  },
+  "answer": [
+   "UA 729",
+   "United",
+   "12:10 AM"
+  ]
+ },
+ {
+  "params": {
+   "origin_city": "Seattle",
+   "origin_code": "SEA",
+   "destination_city": "New York",
+   "destination_code": "JFK",
+   "date": "2026-08-15"
+  },
+  "start_url": "https://www.google.com/flights",
+  "output_schema": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   }
+  },
+  "answer": [
+   "AS26",
+   "Alaska",
+   "7:00 AM"
+  ]
+ },
+ {
+  "params": {
+   "origin_city": "San Francisco",
+   "origin_code": "SFO",
+   "destination_city": "Boston",
+   "destination_code": "BOS",
+   "date": "2026-08-15"
+  },
+  "start_url": "https://www.google.com/flights",
+  "output_schema": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   }
+  },
+  "answer": [
+   "B6 434",
+   "JetBlue",
+   "6:00 AM"
+  ]
+ }
+]

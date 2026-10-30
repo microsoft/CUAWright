@@ -1,0 +1,12 @@
+# Agent model config for a custom OpenAI-compatible gateway.
+# Copy this file, fill in your values, then:  export MODEL_CFG=/abs/path/to/your_copy.yaml
+#
+# NOTE: openai_endpoint is the FULL request URL (including the /responses path),
+# not a base URL. ".../api" alone will fail; ".../api/responses" works.
+model:
+  model_class: openai
+  model_name: your-model-name
+  openai_endpoint: https://your-gateway.example.com/api/responses
+  # large final scripts need room; slow gateways need patience
+  max_output_tokens: 16000
+  request_timeout_seconds: 600

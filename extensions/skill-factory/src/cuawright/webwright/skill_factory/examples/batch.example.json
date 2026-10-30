@@ -1,0 +1,56 @@
+{
+  "template": "How many commits did {{user}} make {{period}} in the current repository?",
+  "runs": [
+    {
+      "dir": "outputs/commits_a_20260707_120000",
+      "admit": true,
+      "params": {
+        "user": "Jane Doe",
+        "period": "on January 5th 2023"
+      },
+      "verdict": "skip",
+      "site": "gitlab",
+      "output_schema": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        }
+      }
+    },
+    {
+      "dir": "outputs/commits_b_20260707_121500",
+      "admit": true,
+      "params": {
+        "user": "John Smith",
+        "period": "on April 7th 2022"
+      },
+      "verdict": "skip",
+      "site": "gitlab",
+      "output_schema": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        }
+      },
+      "answer": [
+        2
+      ]
+    },
+    {
+      "dir": "outputs/commits_c_20260707_123000",
+      "admit": false,
+      "params": {
+        "user": "Alex Lee",
+        "period": "between start of February 2023 and end of May 2023"
+      },
+      "verdict": "skip",
+      "site": "gitlab",
+      "output_schema": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        }
+      }
+    }
+  ]
+}

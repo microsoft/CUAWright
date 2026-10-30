@@ -1,12 +1,14 @@
 [build-system]
-requires = ["setuptools>=61", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "webwright"
-version = "0.1.0"
-description = "Webwright: tiny SWE-style web agent harness"
+name = "cuawright"
+version = "0.2.0"
+description = "CUAWright: terminal-driven browser and desktop agents"
 requires-python = ">=3.10"
+license = "MIT AND Apache-2.0"
+license-files = ["LICENSE", "NOTICE", "licenses/*.txt"]
 dependencies = [
     "httpx>=0.27",
     "jinja2>=3.1",
@@ -19,11 +21,24 @@ dependencies = [
     "platformdirs>=4.0",
 ]
 
+[project.optional-dependencies]
+skill-factory = ["cuawright-skill-factory==0.2.0"]
+desktop = ["openai>=2.0,<3; python_version >= '3.12'"]
+test = ["pytest>=8", "black==25.1.0"]
+build = ["build>=1", "wheel"]
+
 [project.scripts]
-webwright = "webwright.run.cli:app"
+cuawright = "cuawright.cli:main"
+cuawright-web = "cuawright.webwright.run.cli:app"
+cuawright-desktop = "cuawright.desktop.run.cli:main"
+webwright = "cuawright.webwright.run.cli:app"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-webwright = ["config/*.yaml", "config/**/*.yaml"]
+"cuawright.webwright" = ["config/*.yaml", "config/**/*.yaml"]
+"cuawright.desktop" = ["build_provenance.json", "osworld_release.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "release/osworld/tests"]

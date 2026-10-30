@@ -1,20 +1,26 @@
 {
-  "name": "webwright",
+  "name": "cuawright",
   "owner": {
     "name": "Microsoft Research",
     "url": "https://github.com/microsoft/Webwright"
   },
   "plugins": [
     {
-      "name": "webwright",
+      "name": "cuawright",
       "source": {
         "source": "github",
         "repo": "microsoft/Webwright"
       },
-      "description": "Turn your coding agent into a SOTA browser agent. Drives a local Playwright workspace via one bash command at a time, saving screenshots and an action log into final_runs/run_<id>/, and visually self-verifies the result.",
-      "version": "0.1.0",
+      "description": "CUAWright browser automation skill; desktop runtime available through cuawright-desktop.",
+      "version": "0.2.0",
       "category": "automation",
-      "keywords": ["browser", "playwright", "web-agent", "automation", "rpa"]
+      "keywords": [
+        "browser",
+        "playwright",
+        "web-agent",
+        "automation",
+        "rpa"
+      ]
     }
   ]
 }

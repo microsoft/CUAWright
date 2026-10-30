@@ -1,0 +1,21 @@
+name: skills-tests
+on:
+  push:
+    paths: ["extensions/skill-factory/**", "tests/skill_factory/**", "pyproject.toml"]
+  pull_request:
+    paths: ["extensions/skill-factory/**", "tests/skill_factory/**", "pyproject.toml"]
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with: { python-version: "3.12" }
+      - run: pip install -e ".[skill-factory,test]" -e extensions/skill-factory
+      - name: skills unit tests (LLM-free)
+        run: python -m pytest -q tests/skill_factory
+      - name: wrapper usage check (F6)
+        run: |
+          set +e
+          bash extensions/skill-factory/src/cuawright/webwright/skill_factory/examples/solve_with_library.sh > /dev/null 2>&1
+          [ $? -eq 1 ] && echo "usage-exit OK" || { echo "wrapper must exit 1 on missing args"; exit 1; }

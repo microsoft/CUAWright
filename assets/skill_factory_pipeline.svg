@@ -1,0 +1,196 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FCFBF7"/>
+      <stop offset="100%" stop-color="#F0F2EC"/>
+    </linearGradient>
+    <filter id="sh" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="5" flood-color="#35352F" flood-opacity="0.09"/>
+    </filter>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6B6B63"/>
+    </marker>
+    <marker id="aS" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#A07C36"/>
+    </marker>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#paper)"/>
+
+  <text x="800" y="56" text-anchor="middle" font-size="38" font-weight="700" fill="#35352F">Web Skill Factory</text>
+  <text x="800" y="88" text-anchor="middle" font-size="17" fill="#7C7C75">A task batch goes in, verified programs come out, and the library widens with every batch.</text>
+
+  <!-- ══════ COMPONENTS ══════ -->
+  <text x="70" y="134" font-size="14" font-weight="700" fill="#A5A59C" letter-spacing="1.6">COMPONENTS</text>
+  <g filter="url(#sh)">
+    <rect x="70" y="150" width="470" height="172" rx="16" fill="#FFFFFF" stroke="#E3E1DA" stroke-width="2"/>
+    <rect x="565" y="150" width="470" height="172" rx="16" fill="#FFFFFF" stroke="#E3E1DA" stroke-width="2"/>
+    <rect x="1060" y="150" width="470" height="172" rx="16" fill="#FFFFFF" stroke="#E3E1DA" stroke-width="2"/>
+  </g>
+  <rect x="70" y="150" width="6" height="172" rx="3" fill="#D6B681"/>
+  <rect x="565" y="150" width="6" height="172" rx="3" fill="#8FB39B"/>
+  <rect x="1060" y="150" width="6" height="172" rx="3" fill="#97B3C9"/>
+
+  <text x="138" y="186" font-size="21" font-weight="700" fill="#8A6A34" font-family="ui-monospace, Menlo, monospace">skill_use</text>
+  <text x="100" y="210" font-size="14.5" fill="#7C7C75">the reuse decision, made out of the loop</text>
+  <text x="100" y="242" font-size="14.5" fill="#52524C">Resolved before the agent starts; the result,</text>
+  <text x="100" y="264" font-size="14.5" fill="#52524C">one of <tspan font-weight="700">run, adapt, skip</tspan> plus the source,</text>
+  <text x="100" y="286" font-size="14.5" fill="#52524C">is injected into the prompt, or run directly.</text>
+  <text x="100" y="308" font-size="14.5" fill="#7C7C75">The agent never queries the library itself.</text>
+
+  <text x="633" y="186" font-size="21" font-weight="700" fill="#46705A" font-family="ui-monospace, Menlo, monospace">skill_factory</text>
+  <text x="595" y="210" font-size="14.5" fill="#7C7C75">an offline batch job, run after solving</text>
+  <text x="595" y="242" font-size="14.5" fill="#52524C">It groups many finished solves into task</text>
+  <text x="595" y="264" font-size="14.5" fill="#52524C">templates, then turns each template into</text>
+  <text x="595" y="286" font-size="14.5" font-weight="700" fill="#52524C">ONE parameterized program.</text>
+  <text x="595" y="309" font-size="13.5" fill="#7C7C75"><tspan font-weight="700" fill="#46705A" font-family="ui-monospace, Menlo, monospace">learn</tspan> distils runs you already have, <tspan font-weight="700" fill="#46705A" font-family="ui-monospace, Menlo, monospace">build</tspan> solves them first</text>
+
+  <text x="1128" y="186" font-size="21" font-weight="700" fill="#456380" font-family="ui-monospace, Menlo, monospace">library/</text>
+  <text x="1090" y="210" font-size="14.5" fill="#7C7C75">what accumulates, on disk</text>
+  <text x="1090" y="242" font-size="14.5" fill="#52524C">One folder per task template, holding a</text>
+  <text x="1090" y="264" font-size="14.5" fill="#52524C">reusable, verified, parameterized skill.</text>
+  <text x="1090" y="286" font-size="14.5" fill="#52524C">Code, not a document.</text>
+  <text x="1090" y="308" font-size="14.5" font-weight="700" fill="#52524C">It runs with no model at all.</text>
+
+
+  <!-- icons -->
+  <g fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <g stroke="#8A6A34">
+      <rect x="100" y="166" width="26" height="26" rx="6"/>
+      <polyline points="107,174 112,179 107,184"/>
+      <line x1="115" y1="184" x2="120" y2="184"/>
+    </g>
+    <g stroke="#46705A">
+      <path d="M608,170 L620,176 L608,182 L596,176 Z"/>
+      <path d="M596,181 L608,187 L620,181"/>
+      <path d="M596,186 L608,192 L620,186"/>
+    </g>
+    <g stroke="#456380">
+      <path d="M1090,173 h9 l3,4 h14 v12 h-26 z"/>
+    </g>
+  </g>
+
+  <!-- ══════ THE LOOP ══════ -->
+  <text x="70" y="372" font-size="14" font-weight="700" fill="#A5A59C" letter-spacing="1.6">THE LOOP</text>
+  <line x1="1076" y1="358" x2="1076" y2="866" stroke="#E3E1DA" stroke-width="2"/>
+
+  <!-- Task batch -> webwright solve (prerequisite, feeds the loop) -->
+  <g filter="url(#sh)">
+    <rect x="100" y="385" width="144" height="33" rx="9" fill="#FDF6E7" stroke="#E7D3AA" stroke-width="2"/>
+    <rect x="93" y="391" width="144" height="33" rx="9" fill="#FCF3E2" stroke="#DFC596" stroke-width="2"/>
+    <rect x="86" y="398" width="144" height="33" rx="9" fill="#FBF7EE" stroke="#D6B681" stroke-width="2.5"/>
+  </g>
+  <text x="158" y="419" text-anchor="middle" font-size="13" font-weight="700" fill="#8A6A34">Task batch</text>
+  <line x1="158" y1="437" x2="158" y2="466" stroke="#6B6B63" stroke-width="2.5" marker-end="url(#a)"/>
+  <g filter="url(#sh)">
+    <rect x="100" y="466" width="144" height="60" rx="11" fill="#FDF6E7" stroke="#E7D3AA" stroke-width="2"/>
+    <rect x="93" y="472" width="144" height="60" rx="11" fill="#FCF3E2" stroke="#DFC596" stroke-width="2"/>
+    <rect x="86" y="478" width="144" height="60" rx="11" fill="#FAF0DE" stroke="#D6B681" stroke-width="2.5"/>
+  </g>
+  <text x="158" y="506" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8A6A34">webwright solves</text>
+  <text x="158" y="524" text-anchor="middle" font-size="11.5" fill="#8A6A34">a batch of runs</text>
+
+  <!-- 1 gate -->
+  <g filter="url(#sh)"><rect x="286" y="398" width="206" height="130" rx="14" fill="#FAE7E3" stroke="#CF9B92" stroke-width="2"/></g>
+  <circle cx="286" cy="398" r="18" fill="#B87C72"/><text x="286" y="405" text-anchor="middle" font-size="17" font-weight="700" fill="#fff">1</text>
+  <text x="310" y="438" font-size="19" font-weight="700" fill="#96574D">Gate</text>
+  <text x="310" y="468" font-size="13.5" fill="#52524C">A solve is material only</text>
+  <text x="310" y="489" font-size="13.5" fill="#52524C">if it got the task right.</text>
+  <text x="310" y="513" font-size="13" font-weight="700" fill="#96574D">gate 1 of 2</text>
+
+  <!-- 2 group -->
+  <g filter="url(#sh)"><rect x="540" y="398" width="206" height="130" rx="14" fill="#E3F0E8" stroke="#8FB39B" stroke-width="2"/></g>
+  <circle cx="540" cy="398" r="18" fill="#6E9B80"/><text x="540" y="405" text-anchor="middle" font-size="17" font-weight="700" fill="#fff">2</text>
+  <text x="564" y="438" font-size="19" font-weight="700" fill="#46705A">Group</text>
+  <text x="564" y="468" font-size="13.5" fill="#52524C">Solves that differ only</text>
+  <text x="564" y="489" font-size="13.5" fill="#52524C">in values group together.</text>
+  <text x="564" y="513" font-size="13" font-weight="700" fill="#46705A">N runs → 1 template</text>
+
+  <!-- 3 distill -->
+  <g filter="url(#sh)"><rect x="794" y="398" width="206" height="130" rx="14" fill="#E3F0E8" stroke="#8FB39B" stroke-width="2"/></g>
+  <circle cx="794" cy="398" r="18" fill="#6E9B80"/><text x="794" y="405" text-anchor="middle" font-size="17" font-weight="700" fill="#fff">3</text>
+  <text x="818" y="438" font-size="19" font-weight="700" fill="#46705A">Distill</text>
+  <text x="818" y="468" font-size="13.5" fill="#52524C">What is identical is the</text>
+  <text x="818" y="489" font-size="13.5" fill="#52524C">skeleton; what differs</text>
+  <text x="818" y="513" font-size="13" font-weight="700" fill="#46705A">is lifted to parameters</text>
+
+  <!-- 4 verify -->
+  <g filter="url(#sh)"><rect x="794" y="612" width="206" height="130" rx="14" fill="#E6EFF6" stroke="#97B3C9" stroke-width="2"/></g>
+  <circle cx="794" cy="612" r="18" fill="#6D8FAC"/><text x="794" y="619" text-anchor="middle" font-size="17" font-weight="700" fill="#fff">4</text>
+  <text x="818" y="652" font-size="19" font-weight="700" fill="#456380">Replay-verify</text>
+  <text x="818" y="682" font-size="13.5" fill="#52524C">It must replay its own</text>
+  <text x="818" y="703" font-size="13.5" fill="#52524C">answers, with no model.</text>
+  <text x="818" y="727" font-size="13" font-weight="700" fill="#456380">gate 2 of 2</text>
+
+  <!-- 5 land it -->
+  <g filter="url(#sh)"><rect x="358" y="612" width="330" height="130" rx="14" fill="#E3F0E8" stroke="#6E9B80" stroke-width="2.5"/></g>
+  <circle cx="358" cy="612" r="18" fill="#46705A"/><text x="358" y="619" text-anchor="middle" font-size="17" font-weight="700" fill="#fff">5</text>
+  <text x="382" y="648" font-size="19" font-weight="700" fill="#46705A">Land it</text>
+  <text x="470" y="648" font-size="13" fill="#7C7C75">one of three, per template</text>
+  <g font-family="ui-monospace, Menlo, monospace" font-size="13" font-weight="700">
+    <rect x="382" y="662" width="58" height="25" rx="7" fill="#FFFFFF" stroke="#6E9B80" stroke-width="1.5"/>
+    <text x="411" y="679" text-anchor="middle" fill="#46705A">add</text>
+    <rect x="450" y="662" width="74" height="25" rx="7" fill="#FFFFFF" stroke="#6E9B80" stroke-width="1.5"/>
+    <text x="487" y="679" text-anchor="middle" fill="#46705A">refine</text>
+    <rect x="534" y="662" width="62" height="25" rx="7" fill="#FFFFFF" stroke="#6E9B80" stroke-width="1.5"/>
+    <text x="565" y="679" text-anchor="middle" fill="#46705A">keep</text>
+  </g>
+  <text x="382" y="710" font-size="12.5" fill="#52524C"><tspan font-weight="700">add</tspan> a template the library never had</text>
+  <text x="382" y="729" font-size="12.5" fill="#52524C"><tspan font-weight="700">refine</tspan> one it has, <tspan font-weight="700">keep</tspan> one already good</text>
+
+  <!-- forward arrows -->
+  <line x1="248" y1="505" x2="282" y2="484" stroke="#6B6B63" stroke-width="2.5" marker-end="url(#a)"/>
+  <line x1="496" y1="464" x2="532" y2="464" stroke="#6B6B63" stroke-width="2.5" marker-end="url(#a)"/>
+  <line x1="750" y1="464" x2="786" y2="464" stroke="#6B6B63" stroke-width="2.5" marker-end="url(#a)"/>
+  <line x1="900" y1="532" x2="900" y2="604" stroke="#6B6B63" stroke-width="2.5" marker-end="url(#a)"/>
+  <line x1="790" y1="677" x2="696" y2="677" stroke="#6B6B63" stroke-width="2.5" marker-end="url(#a)"/>
+
+  <!-- reuse feedback -->
+  <path d="M352,656 C270,656 206,650 158,540" fill="none" stroke="#A07C36" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#aS)"/>
+  <text x="238" y="566" font-size="13" font-weight="700" fill="#8A6A34">the next solve asks</text>
+  <text x="238" y="586" font-size="13" font-weight="700" fill="#8A6A34">the library for a skill</text>
+
+  <!-- ══════ NARROW vs WIDENED ══════ -->
+  <text x="70" y="782" font-size="14" font-weight="700" fill="#A5A59C" letter-spacing="1.6">WHY EVERY BATCH MATTERS</text>
+  <g filter="url(#sh)"><rect x="70" y="796" width="966" height="96" rx="14" fill="#FFFFFF" stroke="#E3E1DA" stroke-width="2"/></g>
+
+  <rect x="96" y="810" width="42" height="24" rx="7" fill="#FAE7E3" stroke="#CF9B92" stroke-width="1.5"/>
+  <text x="117" y="827" text-anchor="middle" font-size="13" font-weight="700" fill="#96574D" font-family="ui-monospace, Menlo, monospace">v1</text>
+  <text x="152" y="827" font-size="15" font-weight="700" fill="#96574D">correct, but narrow</text>
+  <text x="322" y="827" font-size="13" fill="#52524C">it recognised the answer rather than working it out: one instance's values sit in the code.</text>
+
+  <path d="M117,840 L117,852" stroke="#6B6B63" stroke-width="2" marker-end="url(#a)"/>
+
+  <rect x="96" y="856" width="42" height="24" rx="7" fill="#E3F0E8" stroke="#6E9B80" stroke-width="1.5"/>
+  <text x="117" y="873" text-anchor="middle" font-size="13" font-weight="700" fill="#46705A" font-family="ui-monospace, Menlo, monospace">v3</text>
+  <text x="152" y="873" font-size="15" font-weight="700" fill="#46705A">same skill, widened</text>
+  <text x="322" y="873" font-size="13" fill="#52524C">what differed became parameters, so it derives the answer instead of remembering one.</text>
+
+  <!-- ══════ WHAT A SKILL IS ══════ -->
+  <text x="1116" y="372" font-size="14" font-weight="700" fill="#A5A59C" letter-spacing="1.6">WHAT A SKILL IS</text>
+  <g filter="url(#sh)"><rect x="1116" y="396" width="414" height="298" rx="16" fill="#FFFFFF" stroke="#E3E1DA" stroke-width="2"/></g>
+  <text x="1142" y="432" font-size="16" font-weight="700" fill="#35352F" font-family="ui-monospace, Menlo, monospace">library/&lt;template&gt;/</text>
+
+  <rect x="1142" y="454" width="12" height="12" rx="3" fill="#6E9B80"/>
+  <text x="1166" y="465" font-size="15.5" font-weight="700" fill="#46705A" font-family="ui-monospace, Menlo, monospace">skill.py</text>
+  <text x="1166" y="486" font-size="13.5" fill="#7C7C75">A parameterized program. Fill in</text>
+  <text x="1166" y="505" font-size="13.5" fill="#7C7C75">the params, run it. No model.</text>
+
+  <rect x="1142" y="528" width="12" height="12" rx="3" fill="#D6B681"/>
+  <text x="1166" y="539" font-size="15.5" font-weight="700" fill="#8A6A34" font-family="ui-monospace, Menlo, monospace">meta.json</text>
+  <text x="1166" y="560" font-size="13.5" fill="#7C7C75">Its template, parameters, output</text>
+  <text x="1166" y="579" font-size="13.5" fill="#7C7C75">shape, and how many solves it</text>
+  <text x="1166" y="598" font-size="13.5" fill="#7C7C75">has been widened by.</text>
+
+  <rect x="1142" y="621" width="12" height="12" rx="3" fill="#97B3C9"/>
+  <text x="1166" y="632" font-size="15.5" font-weight="700" fill="#456380" font-family="ui-monospace, Menlo, monospace">replays.json</text>
+  <text x="1166" y="653" font-size="13.5" fill="#7C7C75">Every answer it has already</text>
+  <text x="1166" y="672" font-size="13.5" fill="#7C7C75">reproduced, its regression net.</text>
+
+  <text x="1116" y="734" font-size="14" font-weight="700" fill="#A5A59C" letter-spacing="1.6">AND IT CARRIES A GRADE</text>
+  <g filter="url(#sh)"><rect x="1116" y="752" width="414" height="112" rx="16" fill="#FFFFFF" stroke="#E3E1DA" stroke-width="2"/></g>
+  <circle cx="1148" cy="786" r="6" fill="#6E9B80"/>
+  <text x="1166" y="791" font-size="14.5" fill="#52524C"><tspan font-weight="700" fill="#46705A">executable</tspan>, the replay reproduced it</text>
+  <circle cx="1148" cy="824" r="6" fill="#D6B681"/>
+  <text x="1166" y="829" font-size="14.5" fill="#52524C"><tspan font-weight="700" fill="#8A6A34">reference</tspan>, read it, don't trust it to run</text>
+</svg>

@@ -1,0 +1,35 @@
+[
+  {
+    "id": "commits_a",
+    "task": "How many commits did Jane Doe make on January 5th 2023 in the current repository?",
+    "params": {
+      "user": "Jane Doe",
+      "period": "on January 5th 2023"
+    },
+    "gold": [
+      1
+    ]
+  },
+  {
+    "id": "commits_b",
+    "task": "How many commits did John Smith make on April 7th 2022 in the current repository?",
+    "params": {
+      "user": "John Smith",
+      "period": "on April 7th 2022"
+    },
+    "gold": [
+      2
+    ]
+  },
+  {
+    "id": "commits_c",
+    "task": "How many commits did Alex Lee make between start of February 2023 and end of May 2023 in the current repository?",
+    "params": {
+      "user": "Alex Lee",
+      "period": "between start of February 2023 and end of May 2023"
+    },
+    "gold": [
+      7
+    ]
+  }
+]

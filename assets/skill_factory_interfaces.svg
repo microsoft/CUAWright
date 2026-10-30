@@ -1,0 +1,173 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1960 972" font-family="DejaVu Sans, sans-serif">
+  <defs>
+    <marker id="a" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9" fill="none" stroke="#334155" stroke-width="1.6"/>
+    </marker>
+    <marker id="at" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9" fill="none" stroke="#0d9488" stroke-width="1.6"/>
+    </marker>
+  </defs>
+  <style>
+    .box  { fill: #ffffff; stroke: #334155; stroke-width: 1.5; rx: 10; }
+    .sub  { fill: #f8fafc; stroke: #64748b; stroke-width: 1.2; rx: 8; }
+    .t    { fill: #1e293b; font-size: 17px; font-weight: bold; }
+    .h    { fill: #1e293b; font-size: 21px; font-weight: bold; }
+    .md   { fill: #64748b; font-size: 13px; font-family: "DejaVu Sans Mono", monospace; }
+    .lbl  { fill: #475569; font-size: 13px; }
+    .fl   { fill: none; stroke: #334155; stroke-width: 1.6; marker-end: url(#a); }
+    .fd   { fill: none; stroke: #0d9488; stroke-width: 1.6; stroke-dasharray: 6 4; marker-end: url(#at); }
+  </style>
+
+  <text x="980" y="40" text-anchor="middle" font-size="30" font-weight="bold" fill="#0f172a">Web Skill Factory — data flow &amp; interfaces</text>
+
+  <!-- ============ LANES ============ -->
+  <rect x="30"  y="100" width="640" height="858" rx="16" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+  <rect x="700" y="100" width="520" height="858" rx="16" fill="#f0fdfa" stroke="#5eead4" stroke-width="1.5"/>
+  <rect x="1250" y="100" width="680" height="858" rx="16" fill="#fffbeb" stroke="#fcd34d" stroke-width="1.5"/>
+  <text class="h" x="350"  y="133" text-anchor="middle" fill="#1d4ed8">SOLVE TIME · agent</text>
+  <text class="h" x="960"  y="133" text-anchor="middle" fill="#0f766e">LIBRARY · disk</text>
+  <text class="h" x="1590" y="133" text-anchor="middle" fill="#b45309">UPDATE TIME · offline batch</text>
+
+  <!-- ============ SOLVE LANE ============ -->
+  <rect class="box" x="70" y="160" width="560" height="64"/>
+  <text class="t" x="90" y="186">task + start_url</text>
+  <text class="md" x="90" y="208">with_skill_hint(prompt, task, library) → reuse instructions</text>
+
+  <path class="fl" d="M350,224 V258"/>
+
+  <rect class="box" x="70" y="260" width="560" height="46"/>
+  <text class="t" x="90" y="289">webwright agent  <tspan class="md" font-weight="normal">(bash loop — unchanged)</tspan></text>
+
+  <path class="fl" d="M350,306 V340"/>
+  <text class="md" x="362" y="329">resolved out of the loop by with_skill_hint</text>
+
+  <!-- skill_use tool -->
+  <rect class="box" x="70" y="342" width="560" height="284"/>
+  <text class="t" x="90" y="370">skill_use  <tspan class="md" font-weight="normal">(recommend — out of the loop; error → skip)</tspan></text>
+
+  <rect class="sub" x="90" y="386" width="240" height="70"/>
+  <text class="t" x="106" y="412" font-size="15">retrieve</text>
+  <text class="md" x="106" y="432">in : catalog (meta only)</text>
+  <text class="md" x="106" y="448">out: ≤3 Candidate{id,score}</text>
+
+  <path class="fl" d="M330,421 H384"/>
+
+  <rect class="sub" x="386" y="386" width="224" height="70"/>
+  <text class="t" x="402" y="412" font-size="15">decide</text>
+  <text class="md" x="402" y="432">out: Decision{verdict:</text>
+  <text class="md" x="402" y="448">use|adapt|skip, skill_id}</text>
+
+  <rect class="sub" x="90" y="470" width="520" height="50"/>
+  <text class="t" x="106" y="491" font-size="14" fill="#b91c1c">guards</text>
+  <text class="md" x="106" y="510">hallucinated skill_id → skip · empty library → skip + warning</text>
+
+  <path class="fl" d="M350,520 V540"/>
+
+  <rect class="sub" x="90" y="542" width="520" height="66"/>
+  <text class="t" x="106" y="565" font-size="14">result → injected into the prompt (JSON)</text>
+  <text class="md" x="106" y="585">{verdict, skill_id, source_path, call,</text>
+  <text class="md" x="106" y="601"> how_to_reuse: "copy + fill params / reuse core"}</text>
+
+  <path class="fl" d="M350,626 V662"/>
+  <text class="md" x="362" y="650">reads source, copies / adapts</text>
+
+  <rect class="box" x="70" y="664" width="560" height="62"/>
+  <text class="t" x="90" y="690">final_script.py  <tspan class="md" font-weight="normal">(skill code, THIS task's params)</tspan></text>
+  <text class="md" x="90" y="712">run → answer + evidence screenshots</text>
+
+  <path class="fl" d="M350,726 V760"/>
+
+  <rect class="box" x="70" y="762" width="560" height="84"/>
+  <text class="t" x="90" y="788">run artifacts</text>
+  <text class="md" x="90" y="810">agent_response.json {task_type, status, retrieved_data}</text>
+  <text class="md" x="90" y="828">skill_decision.json {skill_id, verdict, reason} · trajectory</text>
+
+  <!-- ============ LIBRARY LANE ============ -->
+  <rect class="box" x="730" y="360" width="460" height="330"/>
+  <text class="t" x="750" y="390">library/&lt;template-slug&gt;/  <tspan class="md" font-weight="normal">× N skills</tspan></text>
+
+  <rect class="sub" x="750" y="406" width="420" height="122"/>
+  <text class="t" x="766" y="432" font-size="15">meta.json — the catalog card</text>
+  <text class="md" x="766" y="454">{template, site, summary,</text>
+  <text class="md" x="766" y="472"> signature:{params, call}, output_schema,</text>
+  <text class="md" x="766" y="490"> n_solves, revisions, verified, grade}</text>
+  <text class="md" x="766" y="512" fill="#0f766e">← only THIS enters the retrieve prompt</text>
+
+  <rect class="sub" x="750" y="544" width="420" height="128"/>
+  <text class="t" x="766" y="570" font-size="15">skill.py — executable, standalone</text>
+  <text class="md" x="766" y="592">primitives: login() · open_…() · extract_…()</text>
+  <text class="md" x="766" y="610">task layer: solve(taskspec)</text>
+  <text class="md" x="766" y="634" fill="#0f766e">← read as SOURCE at solve time;</text>
+  <text class="md" x="766" y="652" fill="#0f766e">  runs anywhere via the CLI below</text>
+
+  <rect class="box" x="730" y="730" width="460" height="116"/>
+  <text class="t" x="750" y="758">standalone interface (no model needed)</text>
+  <text class="md" x="750" y="782">$ python skill.py taskspec.json</text>
+  <text class="md" x="750" y="800">taskspec {params, start_url, credentials, output_schema}</text>
+  <text class="md" x="750" y="818">writes → agent_response.json {retrieved_data}</text>
+
+  <!-- library -> solve: two clean horizontal links through the corridor -->
+  <path class="fd" d="M748,452 C700,452 680,424 634,421"/>
+  <path class="fd" d="M748,600 C700,600 680,676 634,690"/>
+
+  <!-- ============ UPDATE LANE ============ -->
+  <rect class="box" x="1290" y="160" width="600" height="100"/>
+  <text class="t" x="1310" y="188">gate(result, gold?, output_schema?, method)</text>
+  <text class="md" x="1310" y="212">method: gold | self_verify | none → GateResult{admit}</text>
+  <text class="md" x="1310" y="234" fill="#b91c1c">admit=false ⇒ the solve NEVER enters the library</text>
+
+  <path class="fl" d="M1590,260 V294"/>
+
+  <rect class="box" x="1290" y="296" width="600" height="142"/>
+  <text class="t" x="1310" y="322">batch.json — the manifest</text>
+  <text class="md" x="1310" y="344">{template,   ← skills are keyed by this string</text>
+  <text class="md" x="1310" y="362"> runs:[{dir, admit(bool, REQUIRED), params,</text>
+  <text class="md" x="1310" y="380">   verdict:skip|use|adapt, output_schema, answer?}]}</text>
+  <text class="md" x="1310" y="402" fill="#64748b">code ← dir/final_script.py (the solve's working script)</text>
+  <text class="md" x="1310" y="422" fill="#64748b">answer omitted → read dir/agent_response.json</text>
+
+  <path class="fl" d="M1590,438 V472"/>
+  <text class="md" x="1602" y="462">→ [Trace]</text>
+
+  <!-- evolve -->
+  <rect class="box" x="1290" y="474" width="600" height="292"/>
+  <text class="t" x="1310" y="500">evolve(traces, library)</text>
+  <text class="md" x="1310" y="520" fill="#64748b">traces bucketed by EXACT template string — one bucket, one skill:</text>
+
+  <rect class="sub" x="1310" y="530" width="560" height="52"/>
+  <text class="t" x="1326" y="552" font-size="14" fill="#15803d">① template not in library → ADD</text>
+  <text class="md" x="1326" y="570">_refine(N solves) → parameters + primitives → new skill</text>
+
+  <rect class="sub" x="1310" y="592" width="560" height="88"/>
+  <text class="t" x="1326" y="614" font-size="14" fill="#b45309">② covered + verdict has adapt → REFINE in place</text>
+  <text class="md" x="1326" y="634">LLM in : EXISTING skill.py + new solves (code+params)</text>
+  <text class="md" x="1326" y="652">contract: keep working functions, only widen / fix</text>
+  <text class="md" x="1326" y="670">meta    : n_solves += N, revisions += 1</text>
+
+  <rect class="sub" x="1310" y="690" width="560" height="44"/>
+  <text class="t" x="1326" y="712" font-size="14" fill="#64748b">③ covered + all use-success → KEEP (byte-identical)</text>
+
+  <text class="md" x="1310" y="754">changelog {added, adapt_refined, use, reference, rejected, dropped_wrong}</text>
+
+  <!-- replay-verify: nothing lands unproven -->
+  <path class="fl" d="M1590,766 V778"/>
+  <rect class="box" x="1290" y="778" width="600" height="78" stroke="#15803d"/>
+  <text class="t" x="1310" y="802" fill="#15803d">replay-verify — nothing lands unproven</text>
+  <text class="md" x="1310" y="822">the candidate re-runs its OWN training taskspecs — no model</text>
+  <text class="md" x="1310" y="842">strict: the recorded answer · shape: schema → executable / reference</text>
+
+  <!-- loop note -->
+  <path class="fl" d="M1590,856 V870"/>
+  <rect class="box" x="1290" y="872" width="600" height="60" fill="#f0fdfa" stroke="#0d9488"/>
+  <text class="t" x="1310" y="898" fill="#0f766e">library v_n → next batch solves WITH it → v_n+1</text>
+  <text class="md" x="1310" y="918">grown, never rebuilt — untouched skills stay byte-identical</text>
+
+  <!-- ===== cross-lane flows: orthogonal, through the TOP corridor (no crossings) ===== -->
+  <!-- agent_response -> gate -->
+  <path class="fl" d="M630,804 H685 V78 H1234 V190 H1288"/>
+  <text class="lbl" x="960" y="70" text-anchor="middle">agent_response.json (+ gold on benchmarks) → gate</text>
+
+  <!-- evolve write-back -> library -->
+  <path class="fd" d="M1288,598 H1234 V440 H1192"/>
+  <text class="lbl" transform="rotate(-90 1248 520)" x="1248" y="520" text-anchor="middle" fill="#0f766e">write skill.py + meta.json</text>
+</svg>
