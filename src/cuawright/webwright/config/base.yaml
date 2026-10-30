@@ -81,6 +81,17 @@ run:
   task_id:
   start_url:
 
+cache:
+  enabled: false
+  directory: ~/.cache/webwright
+  ttl_seconds: 604800
+  validate_url: true
+  fingerprint_fields:
+    - task
+    - start_url
+    - model.model_name
+    - environment.environment_class
+
 agent:
   agent_class: default
   debug_log: true
